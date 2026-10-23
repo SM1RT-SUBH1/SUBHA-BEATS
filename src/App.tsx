@@ -7,14 +7,7 @@ import {
   Music, 
   WifiOff, 
   DownloadCloud, 
-  ShieldCheck, 
-  Flame, 
   Headphones, 
-  PlusCircle, 
-  Info, 
-  Layers, 
-  ChevronRight, 
-  Compass, 
   LayoutGrid, 
   List, 
   Shuffle, 
@@ -22,7 +15,7 @@ import {
   Search, 
   Filter,
   Star,
-  ExternalLink
+  Download
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useMusic } from './context/MusicContext';
@@ -39,14 +32,20 @@ import { BengaliExplanationModal } from './components/BengaliExplanationModal';
 import { Visualizer } from './components/Visualizer';
 import { LoginGate } from './components/LoginGate';
 import { Footer } from './components/Footer';
-import { AceternityShowcase } from './components/AceternityShowcase';
+import { InstallAppModal } from './components/InstallAppModal';
+import { RealtimeSyncModal } from './components/RealtimeSyncModal';
+import { useInstall } from './context/InstallContext';
+import { StarsBackground } from './components/ui/stars-background';
+import { ShootingStars } from './components/ui/shooting-stars';
+import { HoverBorderGradient } from './components/ui/hover-border-gradient';
 
 export const App: React.FC = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const { tracks, playlists, playTrack, currentTrack, isPlaying, isOfflineMode, favoriteTrackIds, featuredTrackIds } = useMusic();
+  const { isInstalled, promptInstall } = useInstall();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('featured'); // Default to Featured on Home
+  const [activeTab, setActiveTab] = useState('featured');
   const [showAllTracks, setShowAllTracks] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedLetter, setSelectedLetter] = useState<string>('ALL');
@@ -60,6 +59,7 @@ export const App: React.FC = () => {
   const [isFullPlayerOpen, setIsFullPlayerOpen] = useState(false);
   const [isOfflineOpen, setIsOfflineOpen] = useState(false);
   const [isBengaliOpen, setIsBengaliOpen] = useState(false);
+  const [isRealtimeSyncOpen, setIsRealtimeSyncOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -100,8 +100,6 @@ export const App: React.FC = () => {
   const displayedTracks = useMemo(() => {
     let list = tracks;
 
-    // Homepage featured logic:
-    // If activeTab is 'featured' and user hasn't clicked "See All", only show featured tracks!
     if (activeTab === 'featured') {
       if (!showAllTracks) {
         list = list.filter((t) => featuredTrackIds.includes(t.id));
@@ -155,19 +153,23 @@ export const App: React.FC = () => {
     playTrack(shuffled[0], shuffled);
   };
 
-  // Requirement 1: Mandatory Google Sign-In Gate
+  // Google Sign-In Gate
   if (!user && !authLoading) {
     return <LoginGate />;
   }
 
   return (
-    <div className="min-h-screen bg-[#07090E] text-slate-100 flex flex-col relative pb-32">
+    <div className="min-h-screen bg-[#06080F] text-slate-100 flex flex-col relative pb-32 overflow-x-hidden selection:bg-purple-500/30 selection:text-cyan-200">
       
-      {/* Dynamic Aurora glow background inspired by Aceternity UI */}
+      {/* Global Aceternity UI Stars & Cosmic Atmosphere Canvas */}
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute -top-[30%] -left-[10%] w-[65vw] h-[65vw] rounded-full bg-purple-700/10 blur-[140px] animate-pulse-slow" />
-        <div className="absolute top-[20%] -right-[15%] w-[55vw] h-[55vw] rounded-full bg-cyan-600/10 blur-[150px] animate-pulse-slow" style={{ animationDelay: '3s' }} />
-        <div className="absolute bottom-[10%] left-[20%] w-[45vw] h-[45vw] rounded-full bg-indigo-700/10 blur-[160px] animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
+        <StarsBackground starDensity={0.0002} allStarsTwinkle={true} minTwinkleSpeed={0.4} maxTwinkleSpeed={1.2} />
+        <ShootingStars minSpeed={15} maxSpeed={35} minDelay={2000} maxDelay={5000} starColor="#8B5CF6" trailColor="#06B6D4" />
+        
+        {/* Aceternity Aurora Radiance Orbs */}
+        <div className="absolute -top-[25%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-purple-600/12 blur-[150px] animate-pulse-slow" />
+        <div className="absolute top-[25%] -right-[15%] w-[55vw] h-[55vw] rounded-full bg-cyan-500/10 blur-[160px] animate-pulse-slow" style={{ animationDelay: '3s' }} />
+        <div className="absolute bottom-[10%] left-[25%] w-[50vw] h-[50vw] rounded-full bg-indigo-600/10 blur-[170px] animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
       </div>
 
       {/* Top Navbar */}
@@ -175,6 +177,7 @@ export const App: React.FC = () => {
         onOpenAddModal={() => setIsAddOpen(true)}
         onOpenAdminModal={() => setIsAdminOpen(true)}
         onOpenOfflineModal={() => setIsOfflineOpen(true)}
+        onOpenRealtimeSyncModal={() => setIsRealtimeSyncOpen(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         activeTab={activeTab}
@@ -184,27 +187,25 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 flex-1 w-full flex flex-col gap-8">
+      {/* Main Studio Viewport */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 flex-1 w-full flex flex-col gap-10 relative z-10">
         
-        {activeTab === 'aceternity' ? (
-          <AceternityShowcase onBackToMusic={() => setActiveTab('featured')} />
-        ) : (
-          <>
-            {/* Aceternity Hero Studio Card */}
-            {activeTab === 'featured' && !searchQuery && (
-          <div className="relative rounded-3xl overflow-hidden p-6 sm:p-10 border border-white/10 shadow-2xl bg-gradient-to-br from-slate-900/90 via-[#0D121F] to-slate-950">
+        {/* Aceternity Master Hero Studio Card */}
+        {activeTab === 'featured' && !searchQuery && (
+          <div className="relative rounded-3xl overflow-hidden p-6 sm:p-10 border border-white/10 shadow-[0_0_50px_rgba(139,92,246,0.15)] bg-gradient-to-br from-slate-950/90 via-[#0B0F19] to-slate-900/90 backdrop-blur-2xl">
+            {/* Subtle radial grid matrix overlay */}
             <div className="absolute inset-0 bg-[radial-gradient(#8b5cf6_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-gradient-to-b from-cyan-500/20 via-purple-500/10 to-transparent blur-3xl pointer-events-none" />
 
             <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
               
-              <div className="max-w-2xl space-y-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-semibold backdrop-blur-md">
+              <div className="max-w-2xl space-y-5">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-semibold backdrop-blur-md shadow-sm">
                   <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Verified Google Session: {user?.email}</span>
+                  <span>Google Cloud Session: {user?.email}</span>
                 </div>
 
-                <h1 className="font-heading text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                <h1 className="font-heading text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
                   Smart Subha <br />
                   <span className="bg-gradient-to-r from-purple-400 via-cyan-300 to-indigo-300 bg-clip-text text-transparent">
                     BEATS Master Studio
@@ -218,43 +219,56 @@ export const App: React.FC = () => {
                   }
                 </p>
 
+                {/* Aceternity Interactive Action Controls */}
                 <div className="flex flex-wrap items-center gap-3 pt-2">
-                  <button
+                  <HoverBorderGradient
+                    containerClassName="rounded-2xl"
+                    as="button"
                     onClick={handleShufflePlayAll}
                     className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs shadow-xl shadow-purple-600/30 transition-transform active:scale-95"
                   >
                     <Shuffle className="w-4 h-4" />
                     <span>Shuffle Beats</span>
-                  </button>
+                  </HoverBorderGradient>
 
                   <button
                     onClick={() => setShowAllTracks(!showAllTracks)}
-                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-purple-950/60 hover:bg-purple-900/60 text-purple-200 border border-purple-500/40 font-bold text-xs transition-colors"
+                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-purple-950/60 hover:bg-purple-900/60 text-purple-200 border border-purple-500/40 font-bold text-xs transition-all hover:scale-105 active:scale-95 shadow-md shadow-purple-950/40"
                   >
                     <Sparkles className="w-4 h-4 text-cyan-400" />
                     <span>{showAllTracks ? "Show Only Featured" : `See All Songs (${tracks.length} Beats)`}</span>
                   </button>
 
                   <button
+                    onClick={() => setIsRealtimeSyncOpen(true)}
+                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-cyan-950/70 hover:bg-cyan-900/70 text-cyan-200 border border-cyan-500/40 font-bold text-xs transition-all hover:scale-105 active:scale-95 shadow-md shadow-cyan-500/20"
+                    title="Real-Time 2-Way Sync across all devices"
+                  >
+                    <Radio className="w-4 h-4 text-cyan-300 animate-pulse" />
+                    <span>Real-Time Cloud Sync</span>
+                  </button>
+
+                  <button
                     onClick={() => setIsOfflineOpen(true)}
-                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700 font-semibold text-xs transition-colors"
+                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-semibold text-xs transition-colors"
                   >
                     <DownloadCloud className="w-4 h-4 text-emerald-400" />
                     <span>Real Offline Sync</span>
                   </button>
 
                   <button
-                    onClick={() => setActiveTab('aceternity')}
-                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-purple-900/50 via-cyan-950/50 to-indigo-950/50 hover:border-cyan-400 text-cyan-200 border border-cyan-500/40 font-bold text-xs transition-all hover:scale-105 active:scale-95 shadow-md shadow-cyan-500/10"
+                    onClick={() => promptInstall()}
+                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-cyan-950/60 hover:from-emerald-900/60 hover:to-cyan-900/60 text-emerald-300 border border-emerald-500/40 font-bold text-xs transition-all hover:scale-105 active:scale-95 shadow-md shadow-emerald-500/10"
+                    title="Install Smart Subha Beats as a Native APK on Android Phone"
                   >
-                    <Sparkles className="w-4 h-4 text-cyan-300 animate-pulse" />
-                    <span>Aceternity UI Studio (15)</span>
+                    <Download className="w-4 h-4 text-emerald-400 animate-pulse" />
+                    <span>{isInstalled ? "APK Installed ✓" : "Install Android APK"}</span>
                   </button>
                 </div>
               </div>
 
               {/* Real-time spectrum card widget */}
-              <div className="w-full lg:w-80 p-5 rounded-2xl bg-slate-950/80 border border-purple-500/20 shadow-xl flex flex-col gap-3">
+              <div className="w-full lg:w-80 p-5 rounded-2xl bg-slate-950/80 border border-purple-500/30 shadow-2xl flex flex-col gap-3 backdrop-blur-xl">
                 <div className="flex items-center justify-between text-xs text-slate-400">
                   <span className="font-mono flex items-center gap-1.5 text-cyan-300 font-semibold">
                     <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
@@ -274,7 +288,7 @@ export const App: React.FC = () => {
                     <img 
                       src={currentTrack.thumbnail} 
                       alt="" 
-                      className="w-9 h-9 rounded-lg object-cover flex-shrink-0"
+                      className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border border-white/10"
                     />
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-white truncate">{currentTrack.title}</p>
@@ -311,7 +325,7 @@ export const App: React.FC = () => {
                     const plTracks = tracks.filter((t) => pl.trackIds.includes(t.id));
                     if (plTracks.length > 0) playTrack(plTracks[0], plTracks);
                   }}
-                  className="group relative rounded-2xl p-4 glass-card hover:border-purple-500/40 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between"
+                  className="group relative rounded-2xl p-4 bg-slate-900/60 backdrop-blur-xl border border-white/10 hover:border-purple-500/50 hover:shadow-[0_0_25px_rgba(168,85,247,0.2)] transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between"
                 >
                   <div className="flex items-center gap-3.5 mb-3">
                     <img
@@ -385,7 +399,7 @@ export const App: React.FC = () => {
 
               <p className="text-xs text-slate-400 mt-0.5">
                 {activeTab === 'featured' && !showAllTracks 
-                  ? "Admin featured songs active on homepage. Click 'See All' to unlock all 271 tracks."
+                  ? "Admin featured songs active on homepage. Click 'See All' to unlock all tracks."
                   : `Showing ${displayedTracks.length} tracks ready for background YouTube audio streaming.`
                 }
               </p>
@@ -473,7 +487,7 @@ export const App: React.FC = () => {
 
           {/* Tracks Display: Grid or Compact List */}
           {displayedTracks.length === 0 ? (
-            <div className="p-12 text-center rounded-3xl glass-card border border-white/5 space-y-3">
+            <div className="p-12 text-center rounded-3xl bg-slate-900/40 backdrop-blur-xl border border-white/5 space-y-3">
               <Headphones className="w-12 h-12 text-slate-600 mx-auto animate-bounce" />
               <h3 className="text-base font-bold text-slate-300">No tracks match your filter</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
@@ -499,7 +513,7 @@ export const App: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="space-y-1.5 rounded-2xl glass-card p-3 border border-white/5">
+            <div className="space-y-1.5 rounded-2xl bg-slate-900/40 backdrop-blur-xl p-3 border border-white/5">
               {displayedTracks.map((track, idx) => (
                 <TrackListItem key={`${track.id}-${idx}`} track={track} index={idx} />
               ))}
@@ -508,7 +522,7 @@ export const App: React.FC = () => {
 
           {/* See All Banner at Bottom if in Featured view */}
           {activeTab === 'featured' && !showAllTracks && displayedTracks.length > 0 && (
-            <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900/80 to-cyan-950/40 border border-purple-500/20 text-center space-y-3 mt-4">
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900/80 to-cyan-950/40 border border-purple-500/20 text-center space-y-3 mt-4 backdrop-blur-xl">
               <p className="text-sm text-slate-300">
                 Want to listen to more songs? You have <strong>{tracks.length - displayedTracks.length} more tracks</strong> in the library!
               </p>
@@ -521,8 +535,6 @@ export const App: React.FC = () => {
             </div>
           )}
         </section>
-        </>
-        )}
 
       </main>
 
@@ -570,10 +582,22 @@ export const App: React.FC = () => {
         onClose={() => setIsBengaliOpen(false)}
       />
 
+      {/* PWA App Installation Modal */}
+      <InstallAppModal />
+
+      {/* Real-Time Cross-Device Cloud Sync Modal */}
+      <RealtimeSyncModal
+        isOpen={isRealtimeSyncOpen}
+        onClose={() => setIsRealtimeSyncOpen(false)}
+      />
+
       {/* Footer with Mandatory Copyright & Hyperlink */}
-      <Footer />
+      <Footer 
+        onOpenRealtimeSyncModal={() => setIsRealtimeSyncOpen(true)}
+      />
 
     </div>
   );
 };
+
 export default App;

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { MusicProvider } from './context/MusicContext';
+import { InstallProvider } from './context/InstallContext';
 import './index.css';
 
 // Register Service Worker for offline audio caching and background stream playback
@@ -23,7 +24,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AuthProvider>
       <MusicProvider>
-        <App />
+        <InstallProvider>
+          <App />
+        </InstallProvider>
       </MusicProvider>
     </AuthProvider>
   </React.StrictMode>

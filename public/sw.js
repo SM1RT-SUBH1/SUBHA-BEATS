@@ -8,9 +8,12 @@ const STATIC_CACHE = `subha-beats-static-${CACHE_VERSION}`;
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
-  '/src/main.tsx',
-  '/src/App.tsx',
-  '/src/index.css'
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/icon.svg',
+  '/maskable-icon-512.png',
+  '/apple-touch-icon.png'
 ];
 
 // Helper to create a valid, playable minimal WebM/WAV audio blob for offline fallback

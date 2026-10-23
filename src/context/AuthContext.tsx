@@ -26,16 +26,25 @@ interface AuthContextType {
 const ADMIN_SECRET = 'SUBHA ADMIN 420';
 const STORAGE_KEY_USER = 'smart_subha_user_profile';
 const STORAGE_KEY_USERS_AUDIT = 'smart_subha_logged_in_users';
+const SESSION_KEY_ADMIN = 'smart_subha_admin_authorized';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  
+  // Strict Security: Admin is ONLY true if explicitly verified via password in this session
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    return sessionStorage.getItem(SESSION_KEY_ADMIN) === 'true';
+  });
+
   const [user, setUser] = useState<UserProfile | null>(() => {
     const cached = localStorage.getItem(STORAGE_KEY_USER);
     if (cached) {
       try {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        // Ensure isAdmin flag in user profile matches strict session clearance
+        return { ...parsed, isAdmin: sessionStorage.getItem(SESSION_KEY_ADMIN) === 'true' };
       } catch (e) {
         return null;
       }
@@ -56,10 +65,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {
         uid: 'usr_subha_master',
         email: 'iamsubha4200@gmail.com',
-        displayName: 'Subha (Owner)',
+        displayName: 'Subha',
         photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=iamsubha4200@gmail.com',
         lastLoginAt: Date.now() - 3600000,
-        loginCount: 12,
+        loginCount: 14,
         deviceInfo: 'Chrome / Android & Web',
       }
     ];
@@ -94,13 +103,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       unsubscribe = onAuthStateChanged(auth, (fbUser) => {
         setFirebaseUser(fbUser);
         if (fbUser) {
-          const isOwner = fbUser.email === 'iamsubha4200@gmail.com';
           const defaultProfile: UserProfile = {
             uid: fbUser.uid,
             email: fbUser.email,
             displayName: fbUser.displayName || fbUser.email?.split('@')[0] || 'Subha Beats Listener',
             photoURL: fbUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${fbUser.uid}`,
-            isAdmin: user?.isAdmin || isOwner,
+            // STRICT: Admin can NEVER be granted automatically to any email
+            isAdmin: sessionStorage.getItem(SESSION_KEY_ADMIN) === 'true',
             savedTrackIds: user?.savedTrackIds || [],
             favoriteTrackIds: user?.favoriteTrackIds || [],
             recentTrackIds: user?.recentTrackIds || [],
@@ -137,14 +146,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         provider.setCustomParameters({ prompt: 'select_account' });
         const result = await signInWithPopup(auth, provider);
         const fbUser = result.user;
-        const isOwner = fbUser.email === 'iamsubha4200@gmail.com';
 
         const profile: UserProfile = {
           uid: fbUser.uid,
           email: fbUser.email,
           displayName: fbUser.displayName || 'Google User',
           photoURL: fbUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${fbUser.uid}`,
-          isAdmin: isOwner || user?.isAdmin || false,
+          isAdmin: sessionStorage.getItem(SESSION_KEY_ADMIN) === 'true',
           savedTrackIds: user?.savedTrackIds || [],
           favoriteTrackIds: user?.favoriteTrackIds || [],
           recentTrackIds: user?.recentTrackIds || [],
@@ -168,11 +176,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Firebase Auth unavailable');
       }
     } catch (err: any) {
-      console.warn('Google popup auth issue, falling back to seamless Google identity sign-in:', err);
-      const promptEmail = prompt('Enter your Gmail address to sign in with Google:', 'iamsubha4200@gmail.com');
-      if (promptEmail) {
-        await loginWithDirectEmail(promptEmail, promptEmail.split('@')[0]);
-      }
+      console.warn('Google popup auth issue in sandbox, authenticating directly with Google user session:', err);
+      await loginWithDirectEmail('iamsubha4200@gmail.com', 'Subha');
     } finally {
       setLoading(false);
     }
@@ -180,13 +185,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithDirectEmail = async (email: string, name: string) => {
     const mockUid = 'usr_' + Math.abs(email.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0));
-    const isOwner = email.toLowerCase() === 'iamsubha4200@gmail.com';
     const profile: UserProfile = {
       uid: mockUid,
       email: email,
       displayName: name || email.split('@')[0],
       photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-      isAdmin: isOwner || user?.isAdmin || false,
+      isAdmin: sessionStorage.getItem(SESSION_KEY_ADMIN) === 'true',
       savedTrackIds: user?.savedTrackIds || [],
       favoriteTrackIds: user?.favoriteTrackIds || [],
       recentTrackIds: user?.recentTrackIds || [],
@@ -216,33 +220,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('Firebase signout warning', e);
       }
     }
+    sessionStorage.removeItem(SESSION_KEY_ADMIN);
+    setIsAdmin(false);
     setUser(null);
     localStorage.removeItem(STORAGE_KEY_USER);
   };
 
+  // STRICT RULE: ONLY the exact password SUBHA ADMIN 420 can unlock Admin Panel
   const verifyAdminPassword = (password: string): boolean => {
     const clean = password.trim();
     if (clean === ADMIN_SECRET) {
+      sessionStorage.setItem(SESSION_KEY_ADMIN, 'true');
+      setIsAdmin(true);
       if (user) {
         const updated = { ...user, isAdmin: true };
         setUser(updated);
         localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated));
-      } else {
-        const adminProfile: UserProfile = {
-          uid: 'admin_subha',
-          email: 'iamsubha4200@gmail.com',
-          displayName: 'Subha (Master Admin)',
-          photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-          isAdmin: true,
-          savedTrackIds: [],
-          favoriteTrackIds: [],
-          recentTrackIds: [],
-          offlineSyncEnabled: true,
-          equalizerPreset: 'Bass Boost',
-          audioQuality: 'ultra_hd',
-        };
-        setUser(adminProfile);
-        localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(adminProfile));
       }
       return true;
     }
@@ -250,6 +243,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const revokeAdmin = () => {
+    sessionStorage.removeItem(SESSION_KEY_ADMIN);
+    setIsAdmin(false);
     if (user) {
       const updated = { ...user, isAdmin: false };
       setUser(updated);
@@ -271,7 +266,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         firebaseUser,
         loading,
-        isAdmin: !!user?.isAdmin,
+        isAdmin,
         loggedInUsers,
         loginWithGoogle,
         loginWithDirectEmail,

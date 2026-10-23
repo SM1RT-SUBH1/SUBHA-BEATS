@@ -35,7 +35,7 @@ interface MusicContextType {
   savedTrackIds: string[];
   favoriteTrackIds: string[];
   featuredTrackIds: string[];
-  downloadProgress: Record<string, number>; // trackId -> percent (0-100)
+  downloadProgress: Record<string, number>;
   
   // Player Controls
   playTrack: (track: Track, newQueue?: Track[]) => void;
@@ -71,7 +71,6 @@ const STORAGE_KEY_FEATURED = 'smart_subha_featured_ids';
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
 
 export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load initial featured IDs (defaults to first 18 iconic songs if not customized)
   const [featuredTrackIds, setFeaturedTrackIds] = useState<string[]>(() => {
     const cached = localStorage.getItem(STORAGE_KEY_FEATURED);
     if (cached) {
@@ -81,7 +80,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // fallback
       }
     }
-    // Default featured: first 16 iconic tracks
     return DEFAULT_TRACKS.slice(0, 16).map((t) => t.id);
   });
 
@@ -97,7 +95,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    // Set offline cached to false initially until confirmed by IndexedDB verification
     return allTracks.map((t) => ({
       ...t,
       isOfflineCached: false,
@@ -136,6 +133,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isBuffering, setIsBuffering] = useState<boolean>(false);
   const [playbackState, setPlaybackState] = useState<PlaybackState>('unstarted');
+  
+  // Default repeatMode is 'queue' (NOT single track) so it plays continuously song after song
   const [repeatMode, setRepeatMode] = useState<'off' | 'track' | 'queue'>('queue');
   const [isShuffled, setIsShuffled] = useState<boolean>(false);
   const [queue, setQueue] = useState<Track[]>(DEFAULT_TRACKS);
@@ -149,8 +148,9 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const ytReadyRef = useRef<boolean>(false);
   const timeUpdateIntervalRef = useRef<any>(null);
   const animFrameRef = useRef<any>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Reconcile real offline tracks from IndexedDB (strictly no fake offline synced)
+  // Reconcile real offline tracks from IndexedDB
   useEffect(() => {
     const verifyRealOfflineCache = async () => {
       try {
@@ -170,6 +170,60 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     verifyRealOfflineCache();
   }, [featuredTrackIds]);
 
+  // Keep-alive AudioContext for uninterrupted background playback
+  const enableBackgroundAudioKeepAlive = () => {
+    try {
+      if (!audioContextRef.current) {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          gain.gain.value = 0.00001; // Inaudible, keeps audio thread active in background
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          audioContextRef.current = ctx;
+        }
+      } else if (audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume();
+      }
+    } catch (e) {
+      console.warn('Background audio keep-alive note:', e);
+    }
+  };
+
+  // Register MediaSession API for OS background & lock-screen playback controls
+  useEffect(() => {
+    if ('mediaSession' in navigator && currentTrack) {
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: currentTrack.title,
+          artist: currentTrack.artist,
+          album: 'Smart Subha Beats',
+          artwork: [
+            { src: currentTrack.thumbnail, sizes: '96x96', type: 'image/jpeg' },
+            { src: currentTrack.thumbnail, sizes: '128x128', type: 'image/jpeg' },
+            { src: currentTrack.thumbnail, sizes: '256x256', type: 'image/jpeg' },
+            { src: currentTrack.thumbnail, sizes: '512x512', type: 'image/jpeg' },
+          ]
+        });
+
+        navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+
+        navigator.mediaSession.setActionHandler('play', () => togglePlayPause());
+        navigator.mediaSession.setActionHandler('pause', () => togglePlayPause());
+        navigator.mediaSession.setActionHandler('previoustrack', () => playPrevious());
+        navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+          if (details.seekTime !== undefined) seekTo(details.seekTime);
+        });
+      } catch (e) {
+        console.warn('MediaSession notice:', e);
+      }
+    }
+  }, [currentTrack, isPlaying]);
+
   // Initialize YouTube Iframe Player
   useEffect(() => {
     const checkYT = () => {
@@ -184,8 +238,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (playerRef.current) return;
       try {
         playerRef.current = new window.YT.Player('subha-hidden-yt-player', {
-          height: '0',
-          width: '0',
+          height: '2',
+          width: '2',
           videoId: currentTrack ? currentTrack.id : DEFAULT_TRACKS[0].id,
           playerVars: {
             playsinline: 1,
@@ -203,11 +257,13 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               event.target.setVolume(volume);
             },
             onStateChange: (event: any) => {
+              // event.data: 0 = ENDED, 1 = PLAYING, 2 = PAUSED, 3 = BUFFERING
               switch (event.data) {
                 case 1:
                   setIsPlaying(true);
                   setIsBuffering(false);
                   setPlaybackState('playing');
+                  enableBackgroundAudioKeepAlive();
                   if (playerRef.current?.getDuration) {
                     const dur = playerRef.current.getDuration();
                     if (dur > 0) setDuration(dur);
@@ -223,6 +279,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   setPlaybackState('buffering');
                   break;
                 case 0:
+                  // SONG ENDED: Immediately advance to next song sequentially!
                   setIsPlaying(false);
                   setPlaybackState('ended');
                   handleTrackEnded();
@@ -232,8 +289,10 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               }
             },
             onError: (err: any) => {
-              console.warn('YouTube Player Error:', err);
+              console.warn('YouTube Player notice, advancing to next song:', err);
               setIsBuffering(false);
+              // Auto-advance if track is blocked/unavailable
+              setTimeout(() => playNext(), 1000);
             }
           }
         });
@@ -250,13 +309,18 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
-  // Update current playback time periodically
+  // Update current playback time and watchdog for smooth auto-advance
   useEffect(() => {
     if (isPlaying) {
       timeUpdateIntervalRef.current = setInterval(() => {
         if (playerRef.current && playerRef.current.getCurrentTime) {
           const time = playerRef.current.getCurrentTime();
           setCurrentTime(time || 0);
+
+          // Watchdog: If track is within 0.8s of end and hasn't triggered event 0, advance to next
+          if (duration > 5 && time >= duration - 0.8) {
+            handleTrackEnded();
+          }
         }
       }, 500);
     } else {
@@ -265,7 +329,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => {
       if (timeUpdateIntervalRef.current) clearInterval(timeUpdateIntervalRef.current);
     };
-  }, [isPlaying]);
+  }, [isPlaying, duration]);
 
   // Dynamic Audio Visualizer frequency simulation
   useEffect(() => {
@@ -293,6 +357,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, [isPlaying]);
 
+  // Requirement: Once a song ends, do NOT repeat it; play the next song in sequence!
   const handleTrackEnded = () => {
     if (repeatMode === 'track') {
       if (playerRef.current && playerRef.current.seekTo) {
@@ -300,12 +365,14 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         playerRef.current.playVideo();
       }
     } else {
+      // Advance to next song in queue
       playNext();
     }
   };
 
   const playTrack = (track: Track, newQueue?: Track[]) => {
     setCurrentTrack(track);
+    setCurrentTime(0);
     const targetQueue = newQueue || queue;
     if (newQueue) {
       setQueue(newQueue);
@@ -313,17 +380,20 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const idx = targetQueue.findIndex((t) => t.id === track.id);
     setQueueIndex(idx !== -1 ? idx : 0);
 
+    enableBackgroundAudioKeepAlive();
+
     if (playerRef.current && playerRef.current.loadVideoById) {
       playerRef.current.loadVideoById(track.id);
       playerRef.current.playVideo();
       setIsPlaying(true);
     } else {
-      console.warn('Player not ready to load video');
+      console.warn('Player loading video queue');
     }
   };
 
   const togglePlayPause = () => {
     if (!playerRef.current) return;
+    enableBackgroundAudioKeepAlive();
     if (isPlaying) {
       playerRef.current.pauseVideo();
       setIsPlaying(false);
@@ -363,12 +433,15 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  // Continuous sequential autoplay
   const playNext = () => {
     if (queue.length === 0) return;
     let nextIdx: number;
     if (isShuffled) {
-      nextIdx = Math.floor(Math.random() * queue.length);
+      // Choose random index different from current
+      nextIdx = (queueIndex + 1 + Math.floor(Math.random() * (queue.length - 1))) % queue.length;
     } else {
+      // Step to next consecutive song
       nextIdx = (queueIndex + 1) % queue.length;
     }
     setQueueIndex(nextIdx);
@@ -400,12 +473,11 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsOfflineMode((prev) => !prev);
   };
 
-  // Real offline caching implementation (no fake sync)
+  // Real offline caching implementation
   const toggleOfflineCache = async (track: Track) => {
     const isAlreadyCached = !!track.isOfflineCached;
 
     if (isAlreadyCached) {
-      // Remove from real cache
       await deleteOfflineTrack(track.id, track.thumbnail);
       setTracks((prev) =>
         prev.map((t) => (t.id === track.id ? { ...t, isOfflineCached: false } : t))
@@ -416,7 +488,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return copy;
       });
     } else {
-      // Begin real download & offline storage
       setDownloadProgress((prev) => ({ ...prev, [track.id]: 10 }));
       
       const success = await downloadTrackForOffline(track, (p) => {
@@ -440,7 +511,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           delete copy[track.id];
           return copy;
         });
-        alert('Failed to cache audio offline. Please check storage permission.');
+        alert('Could not save offline audio. Check storage permissions.');
       }
     }
   };
@@ -452,7 +523,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const next = isCurrentlyFeatured ? prev.filter((id) => id !== trackId) : [...prev, trackId];
       localStorage.setItem(STORAGE_KEY_FEATURED, JSON.stringify(next));
 
-      // Update tracks state
       setTracks((currTracks) =>
         currTracks.map((t) => (t.id === trackId ? { ...t, isFeatured: !isCurrentlyFeatured } : t))
       );
@@ -575,8 +645,20 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         deleteTrack,
       }}
     >
-      {/* Hidden YouTube IFrame container */}
-      <div className="fixed top-0 left-0 w-0 h-0 opacity-0 pointer-events-none -z-50 overflow-hidden">
+      {/* Background audio container with proper non-zero dimensions & audio session */}
+      <div 
+        style={{
+          position: 'fixed',
+          bottom: 2,
+          right: 2,
+          width: 4,
+          height: 4,
+          opacity: 0.01,
+          pointerEvents: 'none',
+          zIndex: -9999,
+          overflow: 'hidden'
+        }}
+      >
         <div id="subha-hidden-yt-player"></div>
       </div>
       {children}

@@ -149,6 +149,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const timeUpdateIntervalRef = useRef<any>(null);
   const animFrameRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const lastAdvanceTimeRef = useRef<number>(0);
 
   // Reconcile real offline tracks from IndexedDB
   useEffect(() => {
@@ -192,6 +193,30 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.warn('Background audio keep-alive note:', e);
     }
   };
+
+  // Background service check to ensure continuous playback when the tab is inactive
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab went to background: make sure audio keep-alive is active
+        enableBackgroundAudioKeepAlive();
+      } else {
+        // Tab returned to active foreground: verify player state
+        if (isPlaying && playerRef.current?.getPlayerState) {
+          const state = playerRef.current.getPlayerState();
+          if (state === 2) {
+            // Unpause if throttled in background
+            playerRef.current.playVideo();
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isPlaying]);
 
   // Register MediaSession API for OS background & lock-screen playback controls
   useEffect(() => {
@@ -357,15 +382,21 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, [isPlaying]);
 
-  // Requirement: Once a song ends, do NOT repeat it; play the next song in sequence!
+  // Smart Auto-Advance: Once a song ends, do NOT repeat it; play the next song in sequence!
   const handleTrackEnded = () => {
+    const now = Date.now();
+    if (now - lastAdvanceTimeRef.current < 1800) {
+      return; // Prevent duplicate rapid skip triggers
+    }
+    lastAdvanceTimeRef.current = now;
+
     if (repeatMode === 'track') {
       if (playerRef.current && playerRef.current.seekTo) {
         playerRef.current.seekTo(0);
         playerRef.current.playVideo();
       }
     } else {
-      // Advance to next song in queue
+      // Advance to next song in queue continuously
       playNext();
     }
   };
@@ -437,15 +468,20 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const playNext = () => {
     if (queue.length === 0) return;
     let nextIdx: number;
-    if (isShuffled) {
-      // Choose random index different from current
-      nextIdx = (queueIndex + 1 + Math.floor(Math.random() * (queue.length - 1))) % queue.length;
+    if (isShuffled && queue.length > 1) {
+      // Choose random song different from current index
+      do {
+        nextIdx = Math.floor(Math.random() * queue.length);
+      } while (nextIdx === queueIndex);
     } else {
-      // Step to next consecutive song
+      // Step to next consecutive song (loops back to start of queue smoothly)
       nextIdx = (queueIndex + 1) % queue.length;
     }
     setQueueIndex(nextIdx);
-    playTrack(queue[nextIdx]);
+    const nextTrack = queue[nextIdx];
+    if (nextTrack) {
+      playTrack(nextTrack);
+    }
   };
 
   const playPrevious = () => {

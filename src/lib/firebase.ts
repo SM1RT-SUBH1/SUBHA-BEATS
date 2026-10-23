@@ -22,14 +22,14 @@ import {
   Firestore 
 } from 'firebase/firestore';
 
-// Default config with environment fallbacks
+// Provisioned Firebase Configuration
 const firebaseConfig = {
-  apiKey: (import.meta as any).env?.VITE_FIREBASE_API_KEY || "AIzaSyMockSubhaKey123456789Beats",
-  authDomain: (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || "smart-subha-beats.firebaseapp.com",
-  projectId: (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || "smart-subha-beats",
-  storageBucket: (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET || "smart-subha-beats.appspot.com",
-  messagingSenderId: (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "100000000001",
-  appId: (import.meta as any).env?.VITE_FIREBASE_APP_ID || "1:100000000001:web:subhabeatsmock"
+  apiKey: (import.meta as any).env?.VITE_FIREBASE_API_KEY || "AIzaSyB9V6bKFDjgYyIvIKc_07Vb4QkjWQzQyN4",
+  authDomain: (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || "gen-lang-client-0292378567.firebaseapp.com",
+  projectId: (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || "gen-lang-client-0292378567",
+  storageBucket: (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET || "gen-lang-client-0292378567.firebasestorage.app",
+  messagingSenderId: (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "523946209032",
+  appId: (import.meta as any).env?.VITE_FIREBASE_APP_ID || "1:523946209032:web:smartsubhabeats"
 };
 
 let app: FirebaseApp;

@@ -124,7 +124,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
           </button>
 
-          {/* Install APK App Button */}
+          {/* Install PWA App Button */}
           <button
             onClick={() => promptInstall()}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all duration-200 shadow-md ${
@@ -132,15 +132,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ? 'bg-slate-900/70 border-emerald-500/40 text-emerald-300'
                 : 'bg-gradient-to-r from-purple-600/30 via-indigo-600/30 to-cyan-500/30 border-purple-500/50 text-white hover:border-cyan-400 hover:from-purple-600/50 hover:to-cyan-500/50 shadow-purple-500/20 active:scale-95'
             }`}
-            title="Install Smart Subha Beats APK on Mobile Phone"
+            title="Install Smart Subha Beats PWA on Phone or PC"
           >
             <Download className={`w-4 h-4 ${isInstalled ? 'text-emerald-400' : 'text-cyan-300 animate-bounce'}`} />
-            <span>
-              {isInstalled ? 'APK Installed ✓' : 'Install APK'}
+            <span className="hidden sm:inline">
+              {isInstalled ? 'App Active' : 'Install App'}
             </span>
             {!isInstalled && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-gradient-to-r from-emerald-400 to-cyan-400 text-slate-950 font-black shadow-sm">
-                APK
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-400 text-slate-950 font-black">
+                PWA
               </span>
             )}
           </button>

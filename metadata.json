@@ -1,0 +1,6 @@
+{
+  "name": "Smart Subha Beats",
+  "description": "High-fidelity music streaming and offline sync app featuring YouTube audio playback, cloud synchronization, and admin curation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

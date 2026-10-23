@@ -39,6 +39,7 @@ import { BengaliExplanationModal } from './components/BengaliExplanationModal';
 import { Visualizer } from './components/Visualizer';
 import { LoginGate } from './components/LoginGate';
 import { Footer } from './components/Footer';
+import { AceternityShowcase } from './components/AceternityShowcase';
 
 export const App: React.FC = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -186,8 +187,12 @@ export const App: React.FC = () => {
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 flex-1 w-full flex flex-col gap-8">
         
-        {/* Aceternity Hero Studio Card */}
-        {activeTab === 'featured' && !searchQuery && (
+        {activeTab === 'aceternity' ? (
+          <AceternityShowcase onBackToMusic={() => setActiveTab('featured')} />
+        ) : (
+          <>
+            {/* Aceternity Hero Studio Card */}
+            {activeTab === 'featured' && !searchQuery && (
           <div className="relative rounded-3xl overflow-hidden p-6 sm:p-10 border border-white/10 shadow-2xl bg-gradient-to-br from-slate-900/90 via-[#0D121F] to-slate-950">
             <div className="absolute inset-0 bg-[radial-gradient(#8b5cf6_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
 
@@ -236,6 +241,14 @@ export const App: React.FC = () => {
                   >
                     <DownloadCloud className="w-4 h-4 text-emerald-400" />
                     <span>Real Offline Sync</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('aceternity')}
+                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-purple-900/50 via-cyan-950/50 to-indigo-950/50 hover:border-cyan-400 text-cyan-200 border border-cyan-500/40 font-bold text-xs transition-all hover:scale-105 active:scale-95 shadow-md shadow-cyan-500/10"
+                  >
+                    <Sparkles className="w-4 h-4 text-cyan-300 animate-pulse" />
+                    <span>Aceternity UI Studio (15)</span>
                   </button>
                 </div>
               </div>
@@ -508,6 +521,8 @@ export const App: React.FC = () => {
             </div>
           )}
         </section>
+        </>
+        )}
 
       </main>
 

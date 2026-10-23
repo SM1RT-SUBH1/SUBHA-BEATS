@@ -146,6 +146,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const playerRef = useRef<any>(null);
   const ytReadyRef = useRef<boolean>(false);
+  const offlineAudioRef = useRef<HTMLAudioElement | null>(null);
+  const isUsingOfflineAudioRef = useRef<boolean>(false);
   const timeUpdateIntervalRef = useRef<any>(null);
   const animFrameRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -413,29 +415,91 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     enableBackgroundAudioKeepAlive();
 
-    if (playerRef.current && playerRef.current.loadVideoById) {
-      playerRef.current.loadVideoById(track.id);
-      playerRef.current.playVideo();
-      setIsPlaying(true);
+    const shouldUseOfflineAudio = isOfflineMode || !navigator.onLine || (track.isOfflineCached && (!playerRef.current || !navigator.onLine));
+
+    if (shouldUseOfflineAudio) {
+      isUsingOfflineAudioRef.current = true;
+      if (playerRef.current?.pauseVideo) {
+        try { playerRef.current.pauseVideo(); } catch (e) {}
+      }
+      if (!offlineAudioRef.current) {
+        offlineAudioRef.current = new Audio();
+      }
+      const audio = offlineAudioRef.current;
+      audio.preload = 'auto';
+      audio.src = `/offline-audio/${track.id}`;
+      audio.volume = isMuted ? 0 : volume / 100;
+
+      audio.onloadedmetadata = () => {
+        if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
+          setDuration(audio.duration);
+        }
+      };
+      audio.ontimeupdate = () => {
+        setCurrentTime(audio.currentTime);
+      };
+      audio.onended = () => {
+        handleTrackEnded();
+      };
+      audio.onerror = () => {
+        console.warn('Offline audio notice, trying next track');
+        setTimeout(() => playNext(), 800);
+      };
+
+      audio.play().then(() => {
+        setIsPlaying(true);
+        setPlaybackState('playing');
+      }).catch((err) => {
+        console.warn('Audio play request notice:', err);
+      });
     } else {
-      console.warn('Player loading video queue');
+      isUsingOfflineAudioRef.current = false;
+      if (offlineAudioRef.current) {
+        try { offlineAudioRef.current.pause(); } catch (e) {}
+      }
+      if (playerRef.current && playerRef.current.loadVideoById) {
+        playerRef.current.loadVideoById(track.id);
+        playerRef.current.playVideo();
+        setIsPlaying(true);
+      } else {
+        console.warn('Player loading video queue');
+      }
     }
   };
 
   const togglePlayPause = () => {
-    if (!playerRef.current) return;
     enableBackgroundAudioKeepAlive();
+    if (isUsingOfflineAudioRef.current && offlineAudioRef.current) {
+      if (isPlaying) {
+        offlineAudioRef.current.pause();
+        setIsPlaying(false);
+        setPlaybackState('paused');
+      } else {
+        offlineAudioRef.current.play();
+        setIsPlaying(true);
+        setPlaybackState('playing');
+      }
+      return;
+    }
+
+    if (!playerRef.current) return;
     if (isPlaying) {
       playerRef.current.pauseVideo();
       setIsPlaying(false);
+      setPlaybackState('paused');
     } else {
       playerRef.current.playVideo();
       setIsPlaying(true);
+      setPlaybackState('playing');
     }
   };
 
   const seekTo = (timeInSeconds: number) => {
     setCurrentTime(timeInSeconds);
+    if (isUsingOfflineAudioRef.current && offlineAudioRef.current) {
+      offlineAudioRef.current.currentTime = timeInSeconds;
+      return;
+    }
     if (playerRef.current && playerRef.current.seekTo) {
       playerRef.current.seekTo(timeInSeconds, true);
     }
@@ -443,6 +507,9 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setVolume = (vol: number) => {
     setVolumeState(vol);
+    if (offlineAudioRef.current) {
+      offlineAudioRef.current.volume = isMuted ? 0 : vol / 100;
+    }
     if (playerRef.current && playerRef.current.setVolume) {
       playerRef.current.setVolume(vol);
       if (vol > 0 && isMuted) {
@@ -453,14 +520,19 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const toggleMute = () => {
-    if (!playerRef.current) return;
     if (isMuted) {
-      playerRef.current.unMute();
       setIsMuted(false);
-      playerRef.current.setVolume(volume);
+      if (offlineAudioRef.current) offlineAudioRef.current.volume = volume / 100;
+      if (playerRef.current && playerRef.current.unMute) {
+        playerRef.current.unMute();
+        playerRef.current.setVolume(volume);
+      }
     } else {
-      playerRef.current.mute();
       setIsMuted(true);
+      if (offlineAudioRef.current) offlineAudioRef.current.volume = 0;
+      if (playerRef.current && playerRef.current.mute) {
+        playerRef.current.mute();
+      }
     }
   };
 

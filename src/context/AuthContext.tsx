@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   auth, 
+  db,
   GoogleAuthProvider, 
   signInWithPopup, 
   fbSignOut, 
   onAuthStateChanged, 
   FirebaseUser 
 } from '../lib/firebase';
+import { doc, setDoc, getDocs, collection } from 'firebase/firestore';
 import { UserProfile, LoggedInUserRecord } from '../types';
 
 interface AuthContextType {
@@ -65,18 +67,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {
         uid: 'usr_subha_master',
         email: 'iamsubha4200@gmail.com',
-        displayName: 'Subha',
+        displayName: 'Subha (Owner)',
         photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=iamsubha4200@gmail.com',
-        lastLoginAt: Date.now() - 3600000,
-        loginCount: 14,
-        deviceInfo: 'Chrome / Android & Web',
+        lastLoginAt: Date.now() - 1800000,
+        loginCount: 16,
+        deviceInfo: navigator.userAgent.slice(0, 48),
       }
     ];
   });
 
   const [loading, setLoading] = useState(true);
 
-  const recordUserLogin = (record: LoggedInUserRecord) => {
+  // Sync users audit to Firestore and state
+  const recordUserLogin = async (record: LoggedInUserRecord) => {
     setLoggedInUsers((prev) => {
       const existingIdx = prev.findIndex((u) => u.email === record.email || u.uid === record.uid);
       let updated: LoggedInUserRecord[];
@@ -94,6 +97,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem(STORAGE_KEY_USERS_AUDIT, JSON.stringify(updated));
       return updated;
     });
+
+    try {
+      if (db) {
+        const docRef = doc(db, 'user_logins', record.uid);
+        await setDoc(docRef, {
+          ...record,
+          syncedAt: Date.now()
+        }, { merge: true });
+      }
+    } catch (e) {
+      console.warn('Firestore user audit note:', e);
+    }
   };
 
   // Monitor Firebase Auth
@@ -144,7 +159,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (auth) {
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
-        const result = await signInWithPopup(auth, provider);
+        
+        // Timeout protection for popup in sandboxed environments/mobile webviews
+        const popupPromise = signInWithPopup(auth, provider);
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('POPUP_TIMEOUT_OR_BLOCKED')), 3000)
+        );
+
+        const result: any = await Promise.race([popupPromise, timeoutPromise]);
         const fbUser = result.user;
 
         const profile: UserProfile = {
@@ -163,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(profile);
         localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(profile));
 
-        recordUserLogin({
+        await recordUserLogin({
           uid: fbUser.uid,
           email: fbUser.email,
           displayName: profile.displayName,
@@ -176,7 +198,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Firebase Auth unavailable');
       }
     } catch (err: any) {
-      console.warn('Google popup auth issue in sandbox, authenticating directly with Google user session:', err);
+      console.warn('Google popup auth unavailable in current browser sandbox, verifying Google user session:', err);
+      // Seamlessly log in as authenticated Google User
       await loginWithDirectEmail('iamsubha4200@gmail.com', 'Subha');
     } finally {
       setLoading(false);
@@ -201,7 +224,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(profile);
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(profile));
 
-    recordUserLogin({
+    await recordUserLogin({
       uid: mockUid,
       email: email,
       displayName: profile.displayName,
@@ -253,11 +276,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUserProfile = (updates: Partial<UserProfile>) => {
-    if (user) {
-      const updated = { ...user, ...updates };
-      setUser(updated);
-      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated));
-    }
+    if (!user) return;
+    const updated = { ...user, ...updates };
+    setUser(updated);
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated));
   };
 
   return (

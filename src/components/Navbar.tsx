@@ -172,10 +172,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-2">
           {[
             { id: 'featured', label: '⭐ Featured Beats', icon: Star },
-            { id: 'explore', label: 'All 271 Tracks', icon: Sparkles },
+            { id: 'aceternity', label: '✨ Aceternity UI (15)', icon: Sparkles },
+            { id: 'explore', label: 'All 271 Tracks', icon: Music },
             { id: 'curated', label: "Subha's Picks", icon: Crown },
             { id: 'bengali', label: 'Bangla Melodies', icon: Music },
-            { id: 'favorites', label: 'Favorites', icon: Sparkles },
+            { id: 'favorites', label: 'Favorites', icon: Star },
             { id: 'offline', label: `Offline Cached (${cachedCount})`, icon: WifiOff },
           ].map((tab) => {
             const Icon = tab.icon;

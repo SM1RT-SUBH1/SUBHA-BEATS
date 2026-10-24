@@ -26,14 +26,9 @@ export const Footer: React.FC<FooterProps> = ({
           
           {/* Brand & Developer Note */}
           <div className="flex items-center gap-3.5">
-            <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 to-cyan-400 p-[1.5px] shadow-lg shadow-purple-500/20">
-              <div className="w-full h-full bg-[#080B14] rounded-2xl overflow-hidden relative">
-                <img 
-                  src="/subhajit-sanpui.jpg" 
-                  alt="Subhajit Sanpui" 
-                  className="w-full h-full object-cover"
-                  onError={(e) => { (e.target as HTMLImageElement).src = '/icon.svg'; }}
-                />
+            <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-cyan-400 p-[1px] shadow-lg shadow-purple-500/20">
+              <div className="w-full h-full bg-[#080B14] rounded-2xl flex items-center justify-center">
+                <Music className="w-5 h-5 text-cyan-300 animate-pulse" />
               </div>
             </div>
             <div>

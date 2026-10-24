@@ -259,10 +259,10 @@ export const App: React.FC = () => {
                   <button
                     onClick={() => promptInstall()}
                     className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-cyan-950/60 hover:from-emerald-900/60 hover:to-cyan-900/60 text-emerald-300 border border-emerald-500/40 font-bold text-xs transition-all hover:scale-105 active:scale-95 shadow-md shadow-emerald-500/10"
-                    title="Install Smart Subha Beats to Home Screen or Desktop"
+                    title="Install Smart Subha Beats as a Native APK on Android Phone"
                   >
                     <Download className="w-4 h-4 text-emerald-400 animate-pulse" />
-                    <span>{isInstalled ? "App Active ✓" : "Install App (PWA)"}</span>
+                    <span>{isInstalled ? "APK Installed ✓" : "Install Android APK"}</span>
                   </button>
                 </div>
               </div>

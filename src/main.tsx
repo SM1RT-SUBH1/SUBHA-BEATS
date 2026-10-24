@@ -1,10 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { MusicProvider } from './context/MusicContext';
 import { InstallProvider } from './context/InstallContext';
-import { ThemeProvider } from './context/ThemeContext';
 import './index.css';
 
 // Register Service Worker for offline audio caching and background stream playback

@@ -169,11 +169,9 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const playerRef = useRef<any>(null);
   const ytReadyRef = useRef<boolean>(false);
   const offlineAudioRef = useRef<HTMLAudioElement | null>(null);
-  const silentAudioAnchorRef = useRef<HTMLAudioElement | null>(null);
   const isUsingOfflineAudioRef = useRef<boolean>(false);
   const timeUpdateIntervalRef = useRef<any>(null);
   const animFrameRef = useRef<any>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
   const lastAdvanceTimeRef = useRef<number>(0);
   const userWantsPlayRef = useRef<boolean>(false);
   const wakeLockSentinelRef = useRef<any>(null);
@@ -344,84 +342,28 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const playSilentAnchor = () => {
-    if (silentAudioAnchorRef.current) {
-      silentAudioAnchorRef.current.play().catch(() => {});
-    }
-  };
-
-  const pauseSilentAnchor = () => {
-    if (silentAudioAnchorRef.current) {
-      silentAudioAnchorRef.current.pause();
-    }
-  };
-
-  // Keep-alive AudioContext for uninterrupted background playback
+  // Safe background audio session without noisy oscillators or popping clicks
   const enableBackgroundAudioKeepAlive = () => {
-    playSilentAnchor();
-    try {
-      if (!audioContextRef.current) {
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioCtx) {
-          const ctx = new AudioCtx();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          gain.gain.value = 0.00001; // Inaudible, keeps audio thread active in background
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start();
-          audioContextRef.current = ctx;
-        }
-      } else if (audioContextRef.current.state === 'suspended') {
-        audioContextRef.current.resume();
-      }
-    } catch (e) {
-      console.warn('Background audio keep-alive note:', e);
-    }
+    // Pure YouTube audio stream without hardware oscillator crackles or looping pop noises
   };
 
-  // Resilient background service check: keeps music playing even when screen is locked or tab is switched
+  // Resilient background service check: keeps music playing cleanly
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Tab went to background or screen was locked: maintain audio stream
-        enableBackgroundAudioKeepAlive();
-        if (userWantsPlayRef.current) {
-          playSilentAnchor();
-          if (playerRef.current?.getPlayerState) {
-            const state = playerRef.current.getPlayerState();
-            if (state !== 1) {
-              playerRef.current.playVideo();
-            }
+      if (!document.hidden && userWantsPlayRef.current) {
+        requestWakeLock();
+        if (playerRef.current?.getPlayerState) {
+          const state = playerRef.current.getPlayerState();
+          if (state === 2) {
+            playerRef.current.playVideo();
           }
         }
-      } else {
-        // Tab returned to active foreground: check state and re-acquire wakelock
-        if (userWantsPlayRef.current) {
-          requestWakeLock();
-          if (playerRef.current?.getPlayerState) {
-            const state = playerRef.current.getPlayerState();
-            if (state === 2) {
-              playerRef.current.playVideo();
-            }
-          }
-        }
-      }
-    };
-
-    const handleWindowBlur = () => {
-      if (userWantsPlayRef.current) {
-        playSilentAnchor();
-        enableBackgroundAudioKeepAlive();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleWindowBlur);
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleWindowBlur);
     };
   }, []);
 
@@ -530,24 +472,11 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   }
                   break;
                 case 2:
-                  // If browser backgrounding/screen lock throttled the video but user didn't hit pause
-                  if (userWantsPlayRef.current) {
-                    if (bgResumeTimeoutRef.current) clearTimeout(bgResumeTimeoutRef.current);
-                    bgResumeTimeoutRef.current = setTimeout(() => {
-                      if (userWantsPlayRef.current && playerRef.current?.playVideo) {
-                        playerRef.current.playVideo();
-                        playSilentAnchor();
-                      }
-                    }, 120);
-                    // Keep active playing state in UI & lock screen
-                    setIsPlaying(true);
-                    setPlaybackState('playing');
-                  } else {
-                    // Genuine user pause
+                  // Player paused
+                  if (!userWantsPlayRef.current) {
                     setIsPlaying(false);
                     setIsBuffering(false);
                     setPlaybackState('paused');
-                    pauseSilentAnchor();
                     releaseWakeLock();
                   }
                   break;
@@ -699,7 +628,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       audio.play().then(() => {
         userWantsPlayRef.current = true;
-        playSilentAnchor();
         requestWakeLock();
         setIsPlaying(true);
         setPlaybackState('playing');
@@ -708,7 +636,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
     } else {
       userWantsPlayRef.current = true;
-      playSilentAnchor();
       requestWakeLock();
       isUsingOfflineAudioRef.current = false;
       if (offlineAudioRef.current) {
@@ -729,14 +656,12 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (isUsingOfflineAudioRef.current && offlineAudioRef.current) {
       if (isPlaying) {
         userWantsPlayRef.current = false;
-        pauseSilentAnchor();
         releaseWakeLock();
         offlineAudioRef.current.pause();
         setIsPlaying(false);
         setPlaybackState('paused');
       } else {
         userWantsPlayRef.current = true;
-        playSilentAnchor();
         requestWakeLock();
         offlineAudioRef.current.play();
         setIsPlaying(true);
@@ -748,14 +673,12 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!playerRef.current) return;
     if (isPlaying) {
       userWantsPlayRef.current = false;
-      pauseSilentAnchor();
       releaseWakeLock();
       playerRef.current.pauseVideo();
       setIsPlaying(false);
       setPlaybackState('paused');
     } else {
       userWantsPlayRef.current = true;
-      playSilentAnchor();
       requestWakeLock();
       playerRef.current.playVideo();
       setIsPlaying(true);
@@ -1040,16 +963,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         triggerCloudSync,
       }}
     >
-      {/* Background audio silent anchor element keeps the Android/iOS media player session and lock-screen active */}
-      <audio
-        ref={silentAudioAnchorRef}
-        loop
-        playsInline
-        preload="auto"
-        src="data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAAAAAAAAAAAAAAAAAAAAAAA="
-        style={{ position: 'fixed', opacity: 0, pointerEvents: 'none', zIndex: -9999 }}
-      />
-
       {/* Hidden YouTube audio player rendered with active viewport size to prevent background throttling */}
       <div 
         style={{

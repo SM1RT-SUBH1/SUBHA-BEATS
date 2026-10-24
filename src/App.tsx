@@ -34,7 +34,9 @@ import { LoginGate } from './components/LoginGate';
 import { Footer } from './components/Footer';
 import { InstallAppModal } from './components/InstallAppModal';
 import { RealtimeSyncModal } from './components/RealtimeSyncModal';
+import { ThemeSwitcherModal } from './components/ThemeSwitcherModal';
 import { useInstall } from './context/InstallContext';
+import { useTheme } from './context/ThemeContext';
 import { StarsBackground } from './components/ui/stars-background';
 import { ShootingStars } from './components/ui/shooting-stars';
 import { HoverBorderGradient } from './components/ui/hover-border-gradient';
@@ -43,6 +45,7 @@ export const App: React.FC = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const { tracks, playlists, playTrack, currentTrack, isPlaying, isOfflineMode, favoriteTrackIds, featuredTrackIds } = useMusic();
   const { isInstalled, promptInstall } = useInstall();
+  const { currentTheme } = useTheme();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('featured');
@@ -60,6 +63,7 @@ export const App: React.FC = () => {
   const [isOfflineOpen, setIsOfflineOpen] = useState(false);
   const [isBengaliOpen, setIsBengaliOpen] = useState(false);
   const [isRealtimeSyncOpen, setIsRealtimeSyncOpen] = useState(false);
+  const [isThemeOpen, setIsThemeOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -159,17 +163,26 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#06080F] text-slate-100 flex flex-col relative pb-32 overflow-x-hidden selection:bg-purple-500/30 selection:text-cyan-200">
+    <div className={`min-h-screen ${currentTheme.bgClass} text-slate-100 flex flex-col relative pb-32 overflow-x-hidden selection:bg-purple-500/30 selection:text-cyan-200 transition-colors duration-500`}>
       
-      {/* Global Aceternity UI Stars & Cosmic Atmosphere Canvas */}
+      {/* Global Aceternity UI Stars & Cosmic Atmosphere Canvas with Dynamic Theme Radiance */}
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
         <StarsBackground starDensity={0.0002} allStarsTwinkle={true} minTwinkleSpeed={0.4} maxTwinkleSpeed={1.2} />
-        <ShootingStars minSpeed={15} maxSpeed={35} minDelay={2000} maxDelay={5000} starColor="#8B5CF6" trailColor="#06B6D4" />
+        <ShootingStars minSpeed={15} maxSpeed={35} minDelay={2000} maxDelay={5000} starColor={currentTheme.primaryColor} trailColor={currentTheme.secondaryColor} />
         
-        {/* Aceternity Aurora Radiance Orbs */}
-        <div className="absolute -top-[25%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-purple-600/12 blur-[150px] animate-pulse-slow" />
-        <div className="absolute top-[25%] -right-[15%] w-[55vw] h-[55vw] rounded-full bg-cyan-500/10 blur-[160px] animate-pulse-slow" style={{ animationDelay: '3s' }} />
-        <div className="absolute bottom-[10%] left-[25%] w-[50vw] h-[50vw] rounded-full bg-indigo-600/10 blur-[170px] animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
+        {/* Dynamic Theme Aurora Radiance Orbs */}
+        <div 
+          className="absolute -top-[25%] -left-[10%] w-[60vw] h-[60vw] rounded-full blur-[150px] animate-pulse-slow transition-all duration-700 opacity-20"
+          style={{ backgroundColor: currentTheme.primaryColor }}
+        />
+        <div 
+          className="absolute top-[25%] -right-[15%] w-[55vw] h-[55vw] rounded-full blur-[160px] animate-pulse-slow transition-all duration-700 opacity-20" 
+          style={{ backgroundColor: currentTheme.secondaryColor, animationDelay: '3s' }} 
+        />
+        <div 
+          className="absolute bottom-[10%] left-[25%] w-[50vw] h-[50vw] rounded-full blur-[170px] animate-pulse-slow transition-all duration-700 opacity-15" 
+          style={{ backgroundColor: currentTheme.accentColor, animationDelay: '1.5s' }} 
+        />
       </div>
 
       {/* Top Navbar */}
@@ -178,6 +191,7 @@ export const App: React.FC = () => {
         onOpenAdminModal={() => setIsAdminOpen(true)}
         onOpenOfflineModal={() => setIsOfflineOpen(true)}
         onOpenRealtimeSyncModal={() => setIsRealtimeSyncOpen(true)}
+        onOpenThemeModal={() => setIsThemeOpen(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         activeTab={activeTab}
@@ -590,6 +604,87 @@ export const App: React.FC = () => {
         isOpen={isRealtimeSyncOpen}
         onClose={() => setIsRealtimeSyncOpen(false)}
       />
+
+      {/* Color Themes Switcher Modal */}
+      <ThemeSwitcherModal
+        isOpen={isThemeOpen}
+        onClose={() => setIsThemeOpen(false)}
+      />
+
+      {/* Mobile-Only Bottom Navigation Dock */}
+      <nav 
+        aria-label="Mobile Navigation"
+        className="md:hidden fixed bottom-2 inset-x-3 z-40 bg-[#07090E]/90 backdrop-blur-2xl border border-white/10 rounded-2xl p-1.5 shadow-2xl flex items-center justify-around"
+      >
+        <button
+          onClick={() => { setActiveTab('featured'); setShowAllTracks(false); }}
+          className={`flex flex-col items-center gap-1 py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
+            activeTab === 'featured'
+              ? 'text-white font-bold'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+          style={{
+            backgroundColor: activeTab === 'featured' ? `${currentTheme.primaryColor}25` : 'transparent',
+            color: activeTab === 'featured' ? currentTheme.primaryColor : undefined,
+          }}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span className="text-[10px]">Featured</span>
+        </button>
+
+        <button
+          onClick={() => { setActiveTab('bengali'); setShowAllTracks(true); }}
+          className={`flex flex-col items-center gap-1 py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
+            activeTab === 'bengali'
+              ? 'text-white font-bold'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+          style={{
+            backgroundColor: activeTab === 'bengali' ? `${currentTheme.primaryColor}25` : 'transparent',
+            color: activeTab === 'bengali' ? currentTheme.primaryColor : undefined,
+          }}
+        >
+          <Music className="w-4 h-4" />
+          <span className="text-[10px]">বাংলা</span>
+        </button>
+
+        <button
+          onClick={() => { setActiveTab('favorites'); setShowAllTracks(true); }}
+          className={`flex flex-col items-center gap-1 py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
+            activeTab === 'favorites'
+              ? 'text-white font-bold'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+          style={{
+            backgroundColor: activeTab === 'favorites' ? `${currentTheme.primaryColor}25` : 'transparent',
+            color: activeTab === 'favorites' ? currentTheme.primaryColor : undefined,
+          }}
+        >
+          <Star className="w-4 h-4" />
+          <span className="text-[10px]">Favorites</span>
+        </button>
+
+        <button
+          onClick={() => setIsThemeOpen(true)}
+          className="flex flex-col items-center gap-1 py-1.5 px-3 rounded-xl transition-all text-slate-400 hover:text-white cursor-pointer"
+        >
+          <span 
+            className="w-4 h-4 rounded-full border border-white/30 shadow-sm"
+            style={{ backgroundColor: currentTheme.primaryColor }}
+          />
+          <span className="text-[10px]">Theme</span>
+        </button>
+
+        <button
+          onClick={() => setIsAdminOpen(true)}
+          className={`flex flex-col items-center gap-1 py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
+            isAdmin ? 'text-amber-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Crown className="w-4 h-4" />
+          <span className="text-[10px]">{isAdmin ? 'Admin' : 'Login'}</span>
+        </button>
+      </nav>
 
       {/* Footer with Mandatory Copyright & Hyperlink */}
       <Footer 

@@ -20,14 +20,18 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+import { ThemeProvider } from './context/ThemeContext';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <AuthProvider>
-      <MusicProvider>
-        <InstallProvider>
-          <App />
-        </InstallProvider>
-      </MusicProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <MusicProvider>
+          <InstallProvider>
+            <App />
+          </InstallProvider>
+        </MusicProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </React.StrictMode>
 );

@@ -347,14 +347,20 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Pure YouTube audio stream without hardware oscillator crackles or looping pop noises
   };
 
-  // Resilient background service check: keeps music playing cleanly
+  // Resilient background service check: keeps music playing in background on mobile & desktop
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden && userWantsPlayRef.current) {
+      if (document.hidden) {
+        // Tab went to background or phone screen locked: keep audio playing seamlessly
+        if (userWantsPlayRef.current && playerRef.current?.playVideo) {
+          playerRef.current.playVideo();
+        }
+      } else if (userWantsPlayRef.current) {
+        // Returned to foreground: ensure wakelock and active playback
         requestWakeLock();
         if (playerRef.current?.getPlayerState) {
           const state = playerRef.current.getPlayerState();
-          if (state === 2) {
+          if (state !== 1) {
             playerRef.current.playVideo();
           }
         }
@@ -963,18 +969,17 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         triggerCloudSync,
       }}
     >
-      {/* Hidden YouTube audio player rendered with active viewport size to prevent background throttling */}
+      {/* Resilient YouTube audio player positioned in active viewport to prevent background mobile throttling */}
       <div 
         style={{
           position: 'fixed',
           bottom: 0,
-          left: 0,
-          width: 240,
-          height: 240,
-          opacity: 0.001,
+          right: 0,
+          width: 32,
+          height: 32,
+          opacity: 0.002,
           pointerEvents: 'none',
-          zIndex: -9999,
-          transform: 'translate3d(-2000px, 0, 0)',
+          zIndex: 1,
         }}
       >
         <div id="subha-hidden-yt-player"></div>

@@ -49,14 +49,22 @@ export const LoginGate: React.FC = () => {
         {/* Top Accent Gradient Bar */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 rounded-t-3xl" />
 
-        {/* App Logo & Neon Wave */}
-        <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-400 p-[1.5px] shadow-2xl shadow-purple-600/40 mb-5 animate-in zoom-in-95 duration-500">
-          <div className="w-full h-full bg-[#080B12] rounded-3xl flex items-center justify-center">
-            <Music className="w-10 h-10 text-cyan-300 animate-pulse" />
+        {/* App Logo & Neon Wave with Subhajit Photo */}
+        <div className="relative w-24 h-24 rounded-3xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-400 p-[2px] shadow-2xl shadow-purple-600/50 mb-5 animate-in zoom-in-95 duration-500">
+          <div className="w-full h-full bg-[#080B12] rounded-3xl overflow-hidden relative">
+            <img 
+              src="/subhajit-sanpui.jpg" 
+              alt="Subhajit Sanpui"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/icon.svg';
+              }}
+            />
           </div>
-          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-400 rounded-full border-4 border-[#080B12] flex items-center justify-center shadow">
-            <ShieldCheck className="w-3.5 h-3.5 text-slate-950 stroke-[3]" />
+          <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#080B14] rounded-full border border-cyan-400/60 flex items-center justify-center shadow-lg">
+            <Music className="w-3.5 h-3.5 text-cyan-300 animate-pulse" />
           </div>
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-[#080B12] shadow" />
         </div>
 
         {/* App Branding */}

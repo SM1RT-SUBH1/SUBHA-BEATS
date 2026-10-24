@@ -11,17 +11,20 @@ import {
   Sparkles,
   Crown,
   Star,
-  Download
+  Download,
+  Palette
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useMusic } from '../context/MusicContext';
 import { useInstall } from '../context/InstallContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface NavbarProps {
   onOpenAddModal: () => void;
   onOpenAdminModal: () => void;
   onOpenOfflineModal: () => void;
   onOpenRealtimeSyncModal?: () => void;
+  onOpenThemeModal?: () => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   activeTab: string;
@@ -33,6 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAdminModal,
   onOpenOfflineModal,
   onOpenRealtimeSyncModal,
+  onOpenThemeModal,
   searchQuery,
   setSearchQuery,
   activeTab,
@@ -41,46 +45,75 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { user, isAdmin, logout } = useAuth();
   const { isOfflineMode, toggleOfflineMode, tracks, realtimeSyncInfo } = useMusic();
   const { isInstalled, promptInstall } = useInstall();
+  const { currentTheme } = useTheme();
 
   const cachedCount = tracks.filter((t) => t.isOfflineCached).length;
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#07090E]/80 border-b border-white/10 backdrop-blur-2xl">
+    <header className="sticky top-0 z-40 w-full bg-[#07090E]/85 border-b border-white/10 backdrop-blur-2xl">
       {/* Top subtle radiant beam */}
-      <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
+      <div 
+        className="absolute top-0 inset-x-0 h-[1.5px] transition-colors duration-500" 
+        style={{
+          background: `linear-gradient(to right, transparent, ${currentTheme.primaryColor}, ${currentTheme.secondaryColor}, transparent)`
+        }}
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3">
         
-        {/* Brand Logo & Name */}
+        {/* Brand Logo & Name with Subhajit Photo */}
         <div 
           onClick={() => setActiveTab('featured')}
-          className="flex items-center gap-3 cursor-pointer group flex-shrink-0"
+          className="flex items-center gap-2.5 sm:gap-3.5 cursor-pointer group flex-shrink-0"
         >
-          <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-400 p-[1px] shadow-lg shadow-purple-500/20 group-hover:scale-105 transition-transform duration-300">
-            <div className="w-full h-full bg-[#080B14] rounded-2xl flex items-center justify-center">
-              <Music className="w-5 h-5 text-cyan-400 group-hover:text-purple-400 transition-colors animate-pulse" />
+          <div 
+            className="relative w-12 h-12 rounded-2xl p-[1.5px] shadow-lg transition-transform duration-300 group-hover:scale-105"
+            style={{
+              background: `linear-gradient(135deg, ${currentTheme.primaryColor}, ${currentTheme.secondaryColor}, ${currentTheme.accentColor})`,
+              boxShadow: `0 8px 24px -4px ${currentTheme.glowColor}`
+            }}
+          >
+            <div className="w-full h-full bg-[#080B14] rounded-2xl overflow-hidden relative">
+              <img 
+                src="/subhajit-sanpui.jpg" 
+                alt="Subhajit Sanpui"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/icon.svg';
+                }}
+              />
             </div>
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#080B14]" />
+            {/* Music note badge floating on logo */}
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#080B14] rounded-full border border-cyan-400/60 flex items-center justify-center shadow">
+              <Music className="w-2.5 h-2.5 text-cyan-300 animate-pulse" />
+            </div>
+            {/* Live studio green status dot */}
+            <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-[#080B14] shadow" />
           </div>
 
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-heading font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="font-heading font-extrabold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
                 Smart Subha
               </span>
-              <span className="font-heading font-black text-xl bg-gradient-to-r from-purple-400 via-cyan-300 to-indigo-300 bg-clip-text text-transparent tracking-wide">
+              <span 
+                className="font-heading font-black text-lg sm:text-xl tracking-wide bg-gradient-to-r bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: `linear-gradient(to right, ${currentTheme.primaryColor}, ${currentTheme.secondaryColor})`
+                }}
+              >
                 BEATS
               </span>
               {isAdmin && (
-                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40">
+                <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40">
                   <Crown className="w-3 h-3 text-amber-400" />
                   Admin
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
-              Aceternity Audio Engine • 320k Ultra-HD
+            <p className="text-[10px] sm:text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <span>Ultra-HD Studio • 320kbps</span>
             </p>
           </div>
         </div>
@@ -144,6 +177,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             )}
           </button>
+
+          {/* Color Themes Switcher Button */}
+          {onOpenThemeModal && (
+            <button
+              onClick={onOpenThemeModal}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 bg-slate-900/60 border-slate-700/60 text-slate-300 hover:text-white hover:border-slate-500 cursor-pointer active:scale-95 shadow-sm"
+              title="Change Color Theme"
+            >
+              <Palette 
+                className="w-4 h-4 transition-transform group-hover:rotate-12" 
+                style={{ color: currentTheme.primaryColor }}
+              />
+              <span className="hidden md:inline">Theme</span>
+            </button>
+          )}
 
           {/* Offline Sync Mode Button */}
           <button

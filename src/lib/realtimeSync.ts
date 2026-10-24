@@ -173,3 +173,78 @@ export const subscribeToRealtimeSync = (
     }
   };
 };
+
+export interface AdminGlobalPayload {
+  customTracks: Track[];
+  featuredTrackIds: string[];
+  playlists: Playlist[];
+  announcement?: string;
+  lastUpdated: number;
+  updatedBy: string;
+}
+
+export const pushAdminGlobalSync = async (payload: Partial<AdminGlobalPayload>): Promise<boolean> => {
+  try {
+    if (db) {
+      const docRef = doc(db, 'admin_master_broadcast', 'global');
+      await setDoc(docRef, {
+        ...payload,
+        lastUpdated: Date.now(),
+        updatedBy: 'SUBHA MASTER ADMIN',
+      }, { merge: true });
+
+      // Also broadcast locally across all tabs and PWA instances
+      if (broadcastChannel) {
+        broadcastChannel.postMessage({
+          type: 'ADMIN_GLOBAL_SYNC',
+          data: payload,
+          lastUpdated: Date.now(),
+        });
+      }
+      return true;
+    }
+  } catch (err) {
+    console.warn('Admin global sync push notice:', err);
+  }
+  return false;
+};
+
+export const subscribeToAdminGlobalSync = (
+  onAdminUpdate: (data: AdminGlobalPayload) => void
+): (() => void) => {
+  let unsubscribeFirestore = () => {};
+
+  try {
+    if (db) {
+      const docRef = doc(db, 'admin_master_broadcast', 'global');
+      unsubscribeFirestore = onSnapshot(docRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data() as AdminGlobalPayload;
+          onAdminUpdate(data);
+        }
+      }, (err) => {
+        console.warn('Admin snapshot error:', err);
+      });
+    }
+  } catch (e) {
+    console.warn('Error setting up admin global listener:', e);
+  }
+
+  const handleBroadcastMessage = (event: MessageEvent) => {
+    if (event.data && event.data.type === 'ADMIN_GLOBAL_SYNC' && event.data.data) {
+      onAdminUpdate(event.data.data as AdminGlobalPayload);
+    }
+  };
+
+  if (broadcastChannel) {
+    broadcastChannel.addEventListener('message', handleBroadcastMessage);
+  }
+
+  return () => {
+    unsubscribeFirestore();
+    if (broadcastChannel) {
+      broadcastChannel.removeEventListener('message', handleBroadcastMessage);
+    }
+  };
+};
+

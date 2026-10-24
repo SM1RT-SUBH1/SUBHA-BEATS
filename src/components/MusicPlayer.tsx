@@ -17,11 +17,14 @@ import {
 import { useMusic } from '../context/MusicContext';
 import { Visualizer } from './Visualizer';
 
+import { useTheme } from '../context/ThemeContext';
+
 interface MusicPlayerProps {
   onOpenFullPlayer: () => void;
 }
 
 export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onOpenFullPlayer }) => {
+  const { currentTheme } = useTheme();
   const {
     currentTrack,
     isPlaying,
@@ -67,15 +70,23 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onOpenFullPlayer }) =>
     <div 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="fixed bottom-0 left-0 right-0 z-50 p-2 sm:p-4 pointer-events-none"
+      className="fixed bottom-16 md:bottom-0 left-0 right-0 z-30 p-2 sm:p-4 pointer-events-none transition-all duration-300"
     >
-      <div className="max-w-6xl mx-auto rounded-3xl glass-panel border border-white/10 shadow-2xl shadow-purple-950/40 pointer-events-auto backdrop-blur-2xl px-4 sm:px-6 py-3.5 flex flex-col gap-2 relative overflow-hidden">
+      <div 
+        className="max-w-6xl mx-auto rounded-3xl glass-panel border border-white/10 shadow-2xl pointer-events-auto backdrop-blur-2xl px-3.5 sm:px-6 py-3 sm:py-3.5 flex flex-col gap-2 relative overflow-hidden"
+        style={{
+          boxShadow: `0 20px 40px -15px ${currentTheme.glowColor}`
+        }}
+      >
         
         {/* Aceternity animated top progress glow beam */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-slate-800/80">
           <div 
-            className="h-full bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 shadow-md shadow-purple-500 transition-all duration-200"
-            style={{ width: `${progressPercent}%` }}
+            className="h-full shadow-md transition-all duration-200"
+            style={{ 
+              width: `${progressPercent}%`,
+              background: `linear-gradient(to right, ${currentTheme.secondaryColor}, ${currentTheme.primaryColor}, ${currentTheme.accentColor})`
+            }}
           />
         </div>
 
@@ -141,7 +152,11 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onOpenFullPlayer }) =>
               {/* Play/Pause Button */}
               <button
                 onClick={togglePlayPause}
-                className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-400 hover:from-purple-500 hover:to-cyan-300 text-slate-950 flex items-center justify-center shadow-lg shadow-purple-600/30 transition-all duration-200 transform hover:scale-105 active:scale-95"
+                className="w-11 h-11 rounded-2xl text-slate-950 flex items-center justify-center shadow-lg transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
+                style={{
+                  background: `linear-gradient(135deg, ${currentTheme.primaryColor}, ${currentTheme.secondaryColor})`,
+                  boxShadow: `0 4px 16px -2px ${currentTheme.glowColor}`
+                }}
                 title={isPlaying ? "Pause" : "Play"}
               >
                 {isPlaying ? (

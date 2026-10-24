@@ -13,6 +13,7 @@ import {
 import { Track } from '../types';
 import { useMusic } from '../context/MusicContext';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface TrackCardProps {
   track: Track;
@@ -32,6 +33,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, index }) => {
     deleteTrack,
   } = useMusic();
   const { isAdmin } = useAuth();
+  const { theme } = useTheme();
 
   const isCurrent = currentTrack?.id === track.id;
   const isFav = favoriteTrackIds.includes(track.id);
@@ -95,11 +97,13 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, index }) => {
       style={{
         transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
         transition: 'transform 0.15s ease-out',
+        borderColor: isCurrent ? theme.secondary : undefined,
+        boxShadow: isCurrent ? `0 0 30px ${theme.glow}` : undefined,
       }}
       className={`group relative rounded-3xl p-4 cursor-pointer overflow-hidden backdrop-blur-xl transition-all duration-300 border ${
         isCurrent
-          ? 'bg-gradient-to-b from-purple-900/40 via-slate-900/90 to-slate-950 border-cyan-400/60 shadow-[0_0_30px_rgba(34,211,238,0.25)] ring-1 ring-cyan-400/40'
-          : 'bg-slate-900/50 hover:bg-slate-900/80 border-white/10 hover:border-purple-500/50 hover:shadow-[0_0_25px_rgba(168,85,247,0.2)]'
+          ? 'bg-slate-900/90 shadow-2xl ring-1'
+          : 'bg-slate-900/50 hover:bg-slate-900/80 border-white/10 hover:border-white/20'
       }`}
     >
       {/* Dynamic radiant spotlight background */}
@@ -115,27 +119,31 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, index }) => {
         />
 
         {/* Ambient Dark Overlay */}
-        <div className={`absolute inset-0 bg-black/35 group-hover:bg-black/55 transition-colors flex items-center justify-center ${
+        <div className={`absolute inset-0 bg-black/30 group-hover:bg-black/55 transition-colors flex items-center justify-center ${
           isCurrent && isPlaying ? 'bg-black/60' : ''
         }`}>
           {/* Active Audio Visualizer Wave */}
           {isCurrent && isPlaying && (
             <div className="absolute inset-0 flex items-center justify-center gap-1.5 bg-slate-950/60 backdrop-blur-sm">
-              <span className="w-1.5 h-6 bg-cyan-400 rounded-full animate-wave" style={{ animationDelay: '0.1s' }} />
-              <span className="w-1.5 h-10 bg-purple-400 rounded-full animate-wave" style={{ animationDelay: '0.3s' }} />
-              <span className="w-1.5 h-8 bg-indigo-400 rounded-full animate-wave" style={{ animationDelay: '0.2s' }} />
-              <span className="w-1.5 h-5 bg-cyan-300 rounded-full animate-wave" style={{ animationDelay: '0.4s' }} />
+              <span className="w-1.5 h-6 rounded-full animate-wave" style={{ backgroundColor: theme.secondary, animationDelay: '0.1s' }} />
+              <span className="w-1.5 h-10 rounded-full animate-wave" style={{ backgroundColor: theme.primary, animationDelay: '0.3s' }} />
+              <span className="w-1.5 h-8 rounded-full animate-wave" style={{ backgroundColor: theme.accent, animationDelay: '0.2s' }} />
+              <span className="w-1.5 h-5 rounded-full animate-wave" style={{ backgroundColor: theme.secondary, animationDelay: '0.4s' }} />
             </div>
           )}
 
-          {/* Aceternity Glowing Play Button */}
+          {/* Aceternity Glowing Play Button - Visible on mobile touch screens and on hover */}
           <button
             onClick={handlePlayClick}
-            className={`w-12 h-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 transform ${
+            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 transform active:scale-95 ${
               isCurrent
-                ? 'bg-gradient-to-tr from-purple-500 to-cyan-400 text-slate-950 scale-100 shadow-cyan-400/30'
-                : 'bg-white/95 text-slate-950 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 hover:scale-110 shadow-purple-500/40'
+                ? 'scale-100 text-slate-950'
+                : 'bg-white/95 text-slate-950 opacity-90 sm:opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 hover:scale-110'
             }`}
+            style={{
+              background: isCurrent ? `linear-gradient(135deg, ${theme.primary}, ${theme.secondary})` : undefined,
+              boxShadow: isCurrent ? `0 0 20px ${theme.glow}` : undefined,
+            }}
             title={isCurrent && isPlaying ? "Pause" : "Play"}
           >
             {isCurrent && isPlaying ? (

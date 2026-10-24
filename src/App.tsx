@@ -42,7 +42,7 @@ import { ShootingStars } from './components/ui/shooting-stars';
 import { HoverBorderGradient } from './components/ui/hover-border-gradient';
 
 export const App: React.FC = () => {
-  const { user, isAdmin, hasEnteredName } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const { tracks, playlists, playTrack, currentTrack, isPlaying, isOfflineMode, favoriteTrackIds, featuredTrackIds } = useMusic();
   const { isInstalled, promptInstall } = useInstall();
   const { currentTheme } = useTheme();
@@ -64,7 +64,6 @@ export const App: React.FC = () => {
   const [isBengaliOpen, setIsBengaliOpen] = useState(false);
   const [isRealtimeSyncOpen, setIsRealtimeSyncOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
-  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -158,6 +157,11 @@ export const App: React.FC = () => {
     playTrack(shuffled[0], shuffled);
   };
 
+  // Google Sign-In Gate
+  if (!user && !authLoading) {
+    return <LoginGate />;
+  }
+
   return (
     <div className={`min-h-screen ${currentTheme.bgClass} text-slate-100 flex flex-col relative pb-32 overflow-x-hidden selection:bg-purple-500/30 selection:text-cyan-200 transition-colors duration-500`}>
       
@@ -188,7 +192,6 @@ export const App: React.FC = () => {
         onOpenOfflineModal={() => setIsOfflineOpen(true)}
         onOpenRealtimeSyncModal={() => setIsRealtimeSyncOpen(true)}
         onOpenThemeModal={() => setIsThemeOpen(true)}
-        onOpenNameModal={() => setIsNameModalOpen(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         activeTab={activeTab}
@@ -600,12 +603,6 @@ export const App: React.FC = () => {
       <RealtimeSyncModal
         isOpen={isRealtimeSyncOpen}
         onClose={() => setIsRealtimeSyncOpen(false)}
-      />
-
-      {/* Name Entry Modal (for editing or customizing listener name) */}
-      <LoginGate
-        isOpen={isNameModalOpen}
-        onClose={() => setIsNameModalOpen(false)}
       />
 
       {/* Color Themes Switcher Modal */}

@@ -16,20 +16,16 @@ export const LoginGate: React.FC = () => {
   const [authInProgress, setAuthInProgress] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = async (customEmail?: string) => {
     setAuthInProgress(true);
     setStatusMessage('Google অ্যাকাউন্টে কানেক্ট করা হচ্ছে...');
     try {
-      await loginWithGoogle();
-      setStatusMessage('সফলভাবে লগইন সম্পন্ন হয়েছে!');
+      await loginWithGoogle(customEmail);
     } catch (e) {
       console.warn('Google sign-in caught notice:', e);
-      setStatusMessage('অ্যাকাউন্ট ভেরিফিকেশন সম্পন্ন...');
     } finally {
-      setTimeout(() => {
-        setAuthInProgress(false);
-        setStatusMessage(null);
-      }, 500);
+      setAuthInProgress(false);
+      setStatusMessage(null);
     }
   };
 
@@ -104,14 +100,14 @@ export const LoginGate: React.FC = () => {
         {/* Google Sign-in Single Direct Button */}
         <div className="w-full space-y-3">
           <button
-            onClick={handleGoogleSignIn}
+            onClick={() => handleGoogleSignIn()}
             disabled={authInProgress || loading}
             className="w-full py-4 px-5 rounded-2xl bg-white hover:bg-slate-100 text-slate-950 font-bold text-sm shadow-xl shadow-white/10 transition-all flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-98 disabled:opacity-80 group cursor-pointer"
           >
             {authInProgress ? (
               <div className="flex items-center gap-2 text-purple-700">
                 <Loader2 className="w-5 h-5 animate-spin text-purple-600" />
-                <span>{statusMessage || 'Signing in with Google...'}</span>
+                <span>{statusMessage || 'Google অ্যাকাউন্টে কানেক্ট হচ্ছে...'}</span>
               </div>
             ) : (
               <>
@@ -133,7 +129,10 @@ export const LoginGate: React.FC = () => {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                   />
                 </svg>
-                <span className="text-slate-900 font-extrabold text-[15px]">Continue with Google</span>
+                <div className="flex flex-col text-left">
+                  <span className="text-slate-900 font-black text-sm">Continue with Google</span>
+                  <span className="text-[11px] text-slate-500 font-normal">iamsubha4200@gmail.com</span>
+                </div>
                 <ArrowRight className="w-4 h-4 ml-auto text-slate-500 group-hover:translate-x-1 transition-transform" />
               </>
             )}

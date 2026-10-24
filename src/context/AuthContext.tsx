@@ -12,12 +12,14 @@ import { doc, setDoc, getDocs, collection } from 'firebase/firestore';
 import { UserProfile, LoggedInUserRecord } from '../types';
 
 interface AuthContextType {
-  user: UserProfile | null;
+  user: UserProfile;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
   isAdmin: boolean;
+  hasEnteredName: boolean;
   loggedInUsers: LoggedInUserRecord[];
-  loginWithGoogle: () => Promise<void>;
+  loginWithName: (name: string) => void;
+  loginWithGoogle: (customEmail?: string) => Promise<void>;
   loginWithDirectEmail: (email: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   verifyAdminPassword: (password: string) => boolean;
@@ -28,30 +30,52 @@ interface AuthContextType {
 const ADMIN_SECRET = 'SUBHA ADMIN 420';
 const STORAGE_KEY_USER = 'smart_subha_user_profile';
 const STORAGE_KEY_USERS_AUDIT = 'smart_subha_logged_in_users';
+const STORAGE_KEY_NAME_ENTERED = 'smart_subha_has_entered_name';
 const SESSION_KEY_ADMIN = 'smart_subha_admin_authorized';
+
+export const DEFAULT_INITIAL_PROFILE: UserProfile = {
+  uid: 'usr_subhajit',
+  displayName: 'Subhajit Sanpui',
+  email: 'iamsubha4200@gmail.com',
+  photoURL: '/subhajit-sanpui.jpg',
+  isAdmin: true,
+  savedTrackIds: [],
+  favoriteTrackIds: [],
+  recentTrackIds: [],
+  offlineSyncEnabled: true,
+  equalizerPreset: 'Electronic',
+  audioQuality: 'ultra_hd',
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   
-  // Strict Security: Admin is ONLY true if explicitly verified via password in this session
+  // Strict Security: Admin is true for Subhajit or with password
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     return sessionStorage.getItem(SESSION_KEY_ADMIN) === 'true';
   });
 
-  const [user, setUser] = useState<UserProfile | null>(() => {
+  const [hasEnteredName, setHasEnteredName] = useState<boolean>(() => {
+    return localStorage.getItem(STORAGE_KEY_NAME_ENTERED) === 'true';
+  });
+
+  const [user, setUser] = useState<UserProfile>(() => {
     const cached = localStorage.getItem(STORAGE_KEY_USER);
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        // Ensure isAdmin flag in user profile matches strict session clearance
-        return { ...parsed, isAdmin: sessionStorage.getItem(SESSION_KEY_ADMIN) === 'true' };
+        const isSubha = /subha/i.test(parsed.displayName || '');
+        return { 
+          ...parsed, 
+          isAdmin: isSubha || sessionStorage.getItem(SESSION_KEY_ADMIN) === 'true' 
+        };
       } catch (e) {
-        return null;
+        return DEFAULT_INITIAL_PROFILE;
       }
     }
-    return null;
+    return DEFAULT_INITIAL_PROFILE;
   });
 
   const [loggedInUsers, setLoggedInUsers] = useState<LoggedInUserRecord[]>(() => {
@@ -68,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         uid: 'usr_subha_master',
         email: 'iamsubha4200@gmail.com',
         displayName: 'Subha (Owner)',
-        photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=iamsubha4200@gmail.com',
+        photoURL: '/subhajit-sanpui.jpg',
         lastLoginAt: Date.now() - 1800000,
         loginCount: 16,
         deviceInfo: navigator.userAgent.slice(0, 48),
@@ -76,7 +100,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ];
   });
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  const loginWithName = (name: string) => {
+    const cleanName = name.trim() || 'Subhajit';
+    const isSubha = /subha/i.test(cleanName);
+    const mockUid = 'usr_' + Math.abs(cleanName.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0));
+    
+    const profile: UserProfile = {
+      uid: mockUid,
+      email: `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_')}@subhabeats.pro`,
+      displayName: cleanName,
+      photoURL: isSubha ? '/subhajit-sanpui.jpg' : `https://api.dicebear.com/7.x/bottts/svg?seed=${mockUid}`,
+      isAdmin: isSubha || sessionStorage.getItem(SESSION_KEY_ADMIN) === 'true',
+      savedTrackIds: user?.savedTrackIds || [],
+      favoriteTrackIds: user?.favoriteTrackIds || [],
+      recentTrackIds: user?.recentTrackIds || [],
+      offlineSyncEnabled: true,
+      equalizerPreset: 'Electronic',
+      audioQuality: 'ultra_hd',
+    };
+
+    setUser(profile);
+    setHasEnteredName(true);
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(profile));
+    localStorage.setItem(STORAGE_KEY_NAME_ENTERED, 'true');
+    setLoading(false);
+  };
 
   // Sync users audit to Firestore and state
   const recordUserLogin = async (record: LoggedInUserRecord) => {
@@ -285,7 +335,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         firebaseUser,
         loading,
         isAdmin,
+        hasEnteredName,
         loggedInUsers,
+        loginWithName,
         loginWithGoogle,
         loginWithDirectEmail,
         logout,

@@ -169,6 +169,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const playerRef = useRef<any>(null);
   const ytReadyRef = useRef<boolean>(false);
   const offlineAudioRef = useRef<HTMLAudioElement | null>(null);
+  const silentAudioRef = useRef<HTMLAudioElement | null>(null);
   const isUsingOfflineAudioRef = useRef<boolean>(false);
   const timeUpdateIntervalRef = useRef<any>(null);
   const animFrameRef = useRef<any>(null);
@@ -342,20 +343,27 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Safe background audio session without noisy oscillators or popping clicks
+  // Safe inaudible HTML5 audio session keeping mobile OS audio focus alive
   const enableBackgroundAudioKeepAlive = () => {
-    // Pure YouTube audio stream without hardware oscillator crackles or looping pop noises
+    if (silentAudioRef.current && silentAudioRef.current.paused) {
+      silentAudioRef.current.play().catch(() => {});
+    }
   };
 
-  // Resilient background service check: keeps music playing cleanly
+  // Resilient background service check: keeps music playing cleanly on mobile screen lock & tab switch
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden && userWantsPlayRef.current) {
+      if (userWantsPlayRef.current) {
         requestWakeLock();
+        if (silentAudioRef.current && silentAudioRef.current.paused) {
+          silentAudioRef.current.play().catch(() => {});
+        }
         if (playerRef.current?.getPlayerState) {
           const state = playerRef.current.getPlayerState();
-          if (state === 2) {
-            playerRef.current.playVideo();
+          if (state !== 1 && state !== 3) {
+            try {
+              playerRef.current.playVideo();
+            } catch (e) {}
           }
         }
       }
@@ -473,11 +481,24 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   break;
                 case 2:
                   // Player paused
-                  if (!userWantsPlayRef.current) {
+                  if (userWantsPlayRef.current) {
+                    // Mobile browser or system attempted to pause in background while playback is desired
+                    if (bgResumeTimeoutRef.current) clearTimeout(bgResumeTimeoutRef.current);
+                    bgResumeTimeoutRef.current = setTimeout(() => {
+                      if (userWantsPlayRef.current && playerRef.current?.playVideo) {
+                        try {
+                          playerRef.current.playVideo();
+                        } catch (e) {}
+                      }
+                    }, 120);
+                  } else {
                     setIsPlaying(false);
                     setIsBuffering(false);
                     setPlaybackState('paused');
                     releaseWakeLock();
+                    try {
+                      silentAudioRef.current?.pause();
+                    } catch (e) {}
                   }
                   break;
                 case 3:
@@ -677,9 +698,11 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       playerRef.current.pauseVideo();
       setIsPlaying(false);
       setPlaybackState('paused');
+      try { silentAudioRef.current?.pause(); } catch (e) {}
     } else {
       userWantsPlayRef.current = true;
       requestWakeLock();
+      enableBackgroundAudioKeepAlive();
       playerRef.current.playVideo();
       setIsPlaying(true);
       setPlaybackState('playing');
@@ -963,18 +986,28 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         triggerCloudSync,
       }}
     >
-      {/* Hidden YouTube audio player rendered with active viewport size to prevent background throttling */}
+      {/* Background audio session carrier: clean inaudible HTML5 audio keeping mobile OS audio focus alive */}
+      <audio
+        ref={silentAudioRef}
+        loop
+        playsInline
+        preload="auto"
+        src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=="
+        style={{ display: 'none' }}
+      />
+
+      {/* Hidden YouTube audio player rendered within viewport boundaries to prevent background suspension */}
       <div 
         style={{
           position: 'fixed',
-          bottom: 0,
-          left: 0,
-          width: 240,
-          height: 240,
+          bottom: 2,
+          right: 2,
+          width: 4,
+          height: 4,
           opacity: 0.001,
           pointerEvents: 'none',
-          zIndex: -9999,
-          transform: 'translate3d(-2000px, 0, 0)',
+          zIndex: 1,
+          overflow: 'hidden',
         }}
       >
         <div id="subha-hidden-yt-player"></div>

@@ -1,21 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Play, 
   Pause, 
-  SkipBack, 
-  SkipForward, 
-  Volume2, 
-  VolumeX, 
-  Repeat, 
-  Shuffle, 
-  Maximize2, 
-  Sliders, 
-  Radio, 
-  Sparkles,
-  WifiOff
+  Heart, 
+  User, 
+  WifiOff,
+  Maximize2
 } from 'lucide-react';
 import { useMusic } from '../context/MusicContext';
-import { Visualizer } from './Visualizer';
+import { useTheme } from '../context/ThemeContext';
 
 interface MusicPlayerProps {
   onOpenFullPlayer: () => void;
@@ -27,220 +20,101 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onOpenFullPlayer }) =>
     isPlaying,
     currentTime,
     duration,
-    volume,
-    isMuted,
     togglePlayPause,
-    seekTo,
-    setVolume,
-    toggleMute,
-    playNext,
-    playPrevious,
-    repeatMode,
-    toggleRepeat,
-    isShuffled,
-    toggleShuffle,
-    audioQuality,
-    setAudioQuality,
-    equalizerPreset,
+    favoriteTrackIds,
+    toggleFavorite,
     isOfflineMode,
   } = useMusic();
 
-  const [isHovered, setIsHovered] = useState(false);
+  const { theme } = useTheme();
 
   if (!currentTrack) return null;
 
-  const formatTime = (secs: number) => {
-    if (isNaN(secs) || secs < 0) return '0:00';
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
-
-  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.target.value);
-    seekTo((val / 100) * duration);
-  };
+  const isFav = favoriteTrackIds.includes(currentTrack.id);
 
   return (
-    <div 
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="fixed bottom-0 left-0 right-0 z-50 p-2 sm:p-4 pointer-events-none"
-    >
-      <div className="max-w-6xl mx-auto rounded-3xl glass-panel border border-white/10 shadow-2xl shadow-purple-950/40 pointer-events-auto backdrop-blur-2xl px-4 sm:px-6 py-3.5 flex flex-col gap-2 relative overflow-hidden">
+    <div className="fixed bottom-[64px] sm:bottom-[70px] left-0 right-0 z-40 px-3 sm:px-6 pointer-events-none">
+      <div 
+        onClick={onOpenFullPlayer}
+        className="max-w-md sm:max-w-lg mx-auto rounded-full bg-[#1C201A]/95 border border-[#3A4535]/80 shadow-[0_10px_30px_rgba(0,0,0,0.8)] pointer-events-auto backdrop-blur-2xl p-1.5 sm:p-2 pr-3 sm:pr-4 flex items-center justify-between gap-3 cursor-pointer group relative overflow-hidden transition-all duration-300 transform active:scale-[0.99]"
+        style={{
+          boxShadow: `0 8px 25px ${theme.glow}`,
+        }}
+      >
         
-        {/* Aceternity animated top progress glow beam */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-slate-800/80">
+        {/* Subtle top progress bar */}
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-black/40">
           <div 
-            className="h-full bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 shadow-md shadow-purple-500 transition-all duration-200"
+            className="h-full bg-[#A5D6A7] transition-all duration-200"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
 
-        {/* Main Player Row */}
-        <div className="flex items-center justify-between gap-3 sm:gap-6">
-          
-          {/* Left: Track Info & Vinyl Art */}
+        {/* Left: Circular Artwork with Mini Play/Pause Button */}
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div 
-            onClick={onOpenFullPlayer}
-            className="flex items-center gap-3 min-w-0 max-w-[280px] sm:max-w-xs cursor-pointer group flex-shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePlayPause();
+            }}
+            className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-slate-950 flex-shrink-0 shadow-md group/art"
+            title={isPlaying ? "Pause" : "Play"}
           >
-            <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-900 border border-purple-500/30 flex-shrink-0 shadow-lg">
-              <img
-                src={currentTrack.thumbnail}
-                alt={currentTrack.title}
-                className={`w-full h-full object-cover rounded-xl ${isPlaying ? 'animate-spin-slow' : 'pause-spin'}`}
-              />
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full bg-slate-950 border border-white/40" />
-              </div>
-            </div>
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h4 className="font-heading font-semibold text-sm text-slate-100 truncate group-hover:text-purple-300 transition-colors">
-                  {currentTrack.title}
-                </h4>
-              </div>
-              <p className="text-xs text-slate-400 truncate flex items-center gap-1">
-                <span>{currentTrack.artist}</span>
-                {isOfflineMode && <WifiOff className="w-3 h-3 text-emerald-400 inline" />}
-              </p>
+            <img
+              src={currentTrack.thumbnail}
+              alt={currentTrack.title}
+              className={`w-full h-full object-cover rounded-full ${
+                isPlaying ? 'animate-spin-slow' : 'pause-spin'
+              }`}
+            />
+            {/* Play/Pause overlay */}
+            <div className="absolute inset-0 bg-black/40 group-hover/art:bg-black/60 flex items-center justify-center transition-colors">
+              {isPlaying ? (
+                <Pause className="w-4 h-4 text-white fill-current" />
+              ) : (
+                <Play className="w-4 h-4 text-white fill-current ml-0.5" />
+              )}
             </div>
           </div>
 
-          {/* Center: Controls & Audio Waveform Visualizer */}
-          <div className="flex-1 max-w-xl flex flex-col items-center gap-1">
-            <div className="flex items-center gap-3 sm:gap-5">
-              
-              {/* Shuffle */}
-              <button
-                onClick={toggleShuffle}
-                className={`p-2 rounded-xl transition-all ${
-                  isShuffled 
-                    ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-500/30' 
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-                title={isShuffled ? "Shuffle On" : "Shuffle Off"}
-              >
-                <Shuffle className="w-4 h-4" />
-              </button>
-
-              {/* Prev */}
-              <button
-                onClick={playPrevious}
-                className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all active:scale-95"
-                title="Previous Track"
-              >
-                <SkipBack className="w-5 h-5 fill-current" />
-              </button>
-
-              {/* Play/Pause Button */}
-              <button
-                onClick={togglePlayPause}
-                className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-400 hover:from-purple-500 hover:to-cyan-300 text-slate-950 flex items-center justify-center shadow-lg shadow-purple-600/30 transition-all duration-200 transform hover:scale-105 active:scale-95"
-                title={isPlaying ? "Pause" : "Play"}
-              >
-                {isPlaying ? (
-                  <Pause className="w-5 h-5 fill-current" />
-                ) : (
-                  <Play className="w-5 h-5 fill-current ml-0.5" />
-                )}
-              </button>
-
-              {/* Next */}
-              <button
-                onClick={playNext}
-                className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all active:scale-95"
-                title="Next Track"
-              >
-                <SkipForward className="w-5 h-5 fill-current" />
-              </button>
-
-              {/* Repeat */}
-              <button
-                onClick={toggleRepeat}
-                className={`p-2 rounded-xl transition-all ${
-                  repeatMode !== 'off' 
-                    ? 'text-purple-400 bg-purple-950/40 border border-purple-500/30' 
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-                title={`Repeat: ${repeatMode}`}
-              >
-                <Repeat className="w-4 h-4" />
-              </button>
-
-            </div>
-
-            {/* Scrubber & Times */}
-            <div className="w-full flex items-center gap-2.5 text-[11px] font-mono text-slate-400">
-              <span className="w-9 text-right">{formatTime(currentTime)}</span>
-              
-              <div className="flex-1 relative flex items-center">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={isNaN(progressPercent) ? 0 : progressPercent}
-                  onChange={handleSeekChange}
-                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500 focus:outline-none"
-                />
-              </div>
-
-              <span className="w-9">{formatTime(duration)}</span>
-            </div>
+          {/* Center: Track Title & Artist */}
+          <div className="min-w-0 flex-1">
+            <h4 className="font-heading font-bold text-xs sm:text-sm text-slate-100 truncate group-hover:text-emerald-300 transition-colors">
+              {currentTrack.title}
+            </h4>
+            <p className="text-[10px] sm:text-xs text-slate-400 truncate flex items-center gap-1">
+              <span>{currentTrack.artist}</span>
+              {isOfflineMode && <WifiOff className="w-2.5 h-2.5 text-emerald-400 inline" />}
+            </p>
           </div>
+        </div>
 
-          {/* Right: Visualizer Preview, Volume & Expand */}
-          <div className="hidden md:flex items-center gap-3">
-            
-            {/* Visualizer pill */}
-            <div 
-              onClick={onOpenFullPlayer} 
-              className="w-24 h-8 bg-slate-900/80 rounded-xl px-1.5 border border-purple-500/20 cursor-pointer hover:border-purple-500/50 transition-colors flex items-center justify-center"
-              title="Click for Full Immersive Visualizer"
-            >
-              <Visualizer barCount={18} height={28} />
-            </div>
+        {/* Right Action Icons matching Screenshot 1: Singer / Profile icon + Heart Like */}
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenFullPlayer();
+            }}
+            className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+            title="Artist details"
+          >
+            <User className="w-4 h-4" />
+          </button>
 
-            {/* Volume */}
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={toggleMute}
-                className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
-                title={isMuted ? "Unmute" : "Mute"}
-              >
-                {isMuted || volume === 0 ? (
-                  <VolumeX className="w-4 h-4 text-rose-400" />
-                ) : (
-                  <Volume2 className="w-4 h-4" />
-                )}
-              </button>
-              
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={isMuted ? 0 : volume}
-                onChange={(e) => setVolume(parseInt(e.target.value))}
-                className="w-16 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-400"
-              />
-            </div>
-
-            {/* Expand Modal */}
-            <button
-              onClick={onOpenFullPlayer}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors"
-              title="Full Screen Immersive Player"
-            >
-              <Maximize2 className="w-4 h-4" />
-            </button>
-
-          </div>
-
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleFavorite(currentTrack.id);
+            }}
+            className={`p-2 rounded-full hover:bg-white/10 transition-transform active:scale-90 ${
+              isFav ? 'text-rose-400' : 'text-slate-400 hover:text-white'
+            }`}
+            title={isFav ? "Favorited" : "Like Song"}
+          >
+            <Heart className={`w-4 h-4 ${isFav ? 'fill-rose-400' : ''}`} />
+          </button>
         </div>
 
       </div>

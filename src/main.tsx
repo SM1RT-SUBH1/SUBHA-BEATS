@@ -4,6 +4,7 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { MusicProvider } from './context/MusicContext';
 import { InstallProvider } from './context/InstallContext';
+import { ThemeProvider } from './context/ThemeContext';
 import './index.css';
 
 // Register Service Worker for offline audio caching and background stream playback
@@ -22,12 +23,14 @@ if ('serviceWorker' in navigator) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <AuthProvider>
-      <MusicProvider>
-        <InstallProvider>
-          <App />
-        </InstallProvider>
-      </MusicProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <MusicProvider>
+          <InstallProvider>
+            <App />
+          </InstallProvider>
+        </MusicProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </React.StrictMode>
 );

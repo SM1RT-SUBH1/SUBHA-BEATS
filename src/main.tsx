@@ -21,20 +21,16 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-import { ErrorBoundary } from './components/ErrorBoundary';
-
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <ThemeProvider>
-        <AuthProvider>
-          <MusicProvider>
-            <InstallProvider>
-              <App />
-            </InstallProvider>
-          </MusicProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <ThemeProvider>
+      <AuthProvider>
+        <MusicProvider>
+          <InstallProvider>
+            <App />
+          </InstallProvider>
+        </MusicProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </React.StrictMode>
 );

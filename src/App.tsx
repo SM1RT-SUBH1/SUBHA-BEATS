@@ -157,8 +157,28 @@ export const App: React.FC = () => {
     playTrack(shuffled[0], shuffled);
   };
 
-  // Google Sign-In Gate
-  if (!user && !authLoading) {
+  // Google Sign-In Gate with Glowing Preloader
+  if (!user) {
+    if (authLoading) {
+      return (
+        <div className="min-h-screen bg-[#06080F] flex flex-col items-center justify-center gap-4 text-white p-4">
+          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-600 to-cyan-400 p-[2px] shadow-xl shadow-purple-600/30 animate-pulse">
+            <div className="w-full h-full bg-[#080B14] rounded-2xl overflow-hidden">
+              <img 
+                src="/subhajit-sanpui.jpg" 
+                alt="Smart Subha" 
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).src = '/icon.svg'; }}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5 text-xs text-cyan-300 font-semibold tracking-wide">
+            <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+            <span>Smart Subha Beats কানেক্ট হচ্ছে...</span>
+          </div>
+        </div>
+      );
+    }
     return <LoginGate />;
   }
 

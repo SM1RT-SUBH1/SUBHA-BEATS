@@ -25,6 +25,7 @@ interface NavbarProps {
   onOpenOfflineModal: () => void;
   onOpenRealtimeSyncModal?: () => void;
   onOpenThemeModal?: () => void;
+  onOpenNameModal?: () => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   activeTab: string;
@@ -37,6 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenOfflineModal,
   onOpenRealtimeSyncModal,
   onOpenThemeModal,
+  onOpenNameModal,
   searchQuery,
   setSearchQuery,
   activeTab,
@@ -235,24 +237,24 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="hidden sm:inline">{isAdmin ? 'Admin Console' : 'Admin'}</span>
           </button>
 
-          {/* Authenticated User Status */}
-          {user && (
-            <div className="flex items-center gap-2 pl-2 border-l border-white/10">
-              <img
-                src={user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`}
-                alt={user.displayName || 'User'}
-                className="w-9 h-9 rounded-xl border border-purple-500/40 object-cover ring-2 ring-purple-500/20"
-                title={`Logged in as ${user.email || user.displayName}`}
-              />
-              <button
-                onClick={logout}
-                className="p-2 rounded-xl bg-slate-900/60 border border-slate-700/60 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 transition-colors"
-                title="Sign Out"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+          {/* User Profile / Name Button */}
+          <button
+            onClick={onOpenNameModal}
+            className="flex items-center gap-2 pl-2 border-l border-white/10 hover:opacity-90 transition-opacity cursor-pointer group"
+            title="নাম পরিবর্তন করুন (Change Name)"
+          >
+            <img
+              src={user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`}
+              alt={user.displayName}
+              className="w-9 h-9 rounded-xl border border-purple-500/40 object-cover ring-2 ring-purple-500/20 group-hover:scale-105 transition-transform"
+            />
+            <div className="hidden sm:flex flex-col text-left">
+              <span className="text-xs font-bold text-white leading-tight truncate max-w-[110px]">
+                {user.displayName}
+              </span>
+              <span className="text-[10px] text-cyan-400 font-medium group-hover:underline">Edit Name ✏️</span>
             </div>
-          )}
+          </button>
 
         </div>
       </div>

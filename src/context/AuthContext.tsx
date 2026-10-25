@@ -291,7 +291,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     sessionStorage.removeItem(SESSION_KEY_ADMIN);
     setIsAdmin(false);
-    setUser(null);
+    setUser(DEFAULT_INITIAL_PROFILE);
     localStorage.removeItem(STORAGE_KEY_USER);
   };
 

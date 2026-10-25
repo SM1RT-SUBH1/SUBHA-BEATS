@@ -245,7 +245,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <img
               src={user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`}
-              alt={user.displayName}
+              alt={user.displayName || 'User profile'}
               className="w-9 h-9 rounded-xl border border-purple-500/40 object-cover ring-2 ring-purple-500/20 group-hover:scale-105 transition-transform"
             />
             <div className="hidden sm:flex flex-col text-left">

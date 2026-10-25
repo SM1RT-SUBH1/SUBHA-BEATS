@@ -14,6 +14,10 @@ export interface ThemeConfig {
   cardBorder: string;
   glowColor: string;
   pillColor: string;
+  primary: string;
+  secondary: string;
+  accent: string;
+  glow: string;
 }
 
 export const THEMES: Record<ThemeId, ThemeConfig> = {
@@ -29,6 +33,10 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     cardBorder: 'border-purple-500/20 hover:border-purple-500/50',
     glowColor: 'rgba(139, 92, 246, 0.35)',
     pillColor: 'bg-purple-600',
+    primary: '#8B5CF6',
+    secondary: '#06B6D4',
+    accent: '#EC4899',
+    glow: 'rgba(139, 92, 246, 0.35)',
   },
   'midnight-cyan': {
     id: 'midnight-cyan',
@@ -42,6 +50,10 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     cardBorder: 'border-cyan-500/20 hover:border-cyan-500/50',
     glowColor: 'rgba(6, 182, 212, 0.35)',
     pillColor: 'bg-cyan-500',
+    primary: '#06B6D4',
+    secondary: '#3B82F6',
+    accent: '#10B981',
+    glow: 'rgba(6, 182, 212, 0.35)',
   },
   'emerald-bass': {
     id: 'emerald-bass',
@@ -55,6 +67,10 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     cardBorder: 'border-emerald-500/20 hover:border-emerald-500/50',
     glowColor: 'rgba(16, 185, 129, 0.35)',
     pillColor: 'bg-emerald-500',
+    primary: '#10B981',
+    secondary: '#84CC16',
+    accent: '#06B6D4',
+    glow: 'rgba(16, 185, 129, 0.35)',
   },
   'sunset-gold': {
     id: 'sunset-gold',
@@ -68,6 +84,10 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     cardBorder: 'border-amber-500/20 hover:border-amber-500/50',
     glowColor: 'rgba(245, 158, 11, 0.35)',
     pillColor: 'bg-amber-500',
+    primary: '#F59E0B',
+    secondary: '#F43F5E',
+    accent: '#8B5CF6',
+    glow: 'rgba(245, 158, 11, 0.35)',
   },
   'amoled-dark': {
     id: 'amoled-dark',
@@ -81,11 +101,16 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     cardBorder: 'border-white/15 hover:border-white/40',
     glowColor: 'rgba(255, 255, 255, 0.2)',
     pillColor: 'bg-slate-200 text-black',
+    primary: '#E2E8F0',
+    secondary: '#8B5CF6',
+    accent: '#38BDF8',
+    glow: 'rgba(255, 255, 255, 0.2)',
   },
 };
 
 interface ThemeContextType {
   currentTheme: ThemeConfig;
+  theme: ThemeConfig;
   themeId: ThemeId;
   setTheme: (id: ThemeId) => void;
   themesList: ThemeConfig[];
@@ -123,6 +148,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <ThemeContext.Provider
       value={{
         currentTheme,
+        theme: currentTheme,
         themeId,
         setTheme: (id: ThemeId) => setThemeId(id),
         themesList: Object.values(THEMES),

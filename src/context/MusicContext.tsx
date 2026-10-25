@@ -11,7 +11,10 @@ import {
   setRemotePlaybackEnabled, 
   pushRealtimeSync, 
   subscribeToRealtimeSync,
-  SyncPayload
+  pushAdminGlobalSync,
+  subscribeToAdminGlobalSync,
+  SyncPayload,
+  AdminGlobalPayload
 } from '../lib/realtimeSync';
 
 declare global {
@@ -63,13 +66,14 @@ interface MusicContextType {
   
   // Track and Playlist actions
   addCustomTrack: (track: Track) => Promise<void>;
+  updateTrack: (trackId: string, updates: Partial<Track>) => Promise<void>;
   toggleFavorite: (trackId: string) => void;
   toggleSaveTrack: (trackId: string) => void;
   toggleOfflineCache: (track: Track) => Promise<void>;
   toggleFeatured: (trackId: string) => void;
   createPlaylist: (title: string, description: string, initialTracks?: string[]) => Playlist;
   addTrackToPlaylist: (playlistId: string, trackId: string) => void;
-  deleteTrack: (trackId: string) => void;
+  deleteTrack: (trackId: string) => Promise<void>;
 
   // Real-Time Cross-Device Cloud Sync
   realtimeSyncInfo: {
@@ -89,6 +93,8 @@ const STORAGE_KEY_PLAYLISTS = 'smart_subha_playlists';
 const STORAGE_KEY_FAVORITES = 'smart_subha_favorites';
 const STORAGE_KEY_SAVED = 'smart_subha_saved';
 const STORAGE_KEY_FEATURED = 'smart_subha_featured_ids';
+const STORAGE_KEY_DELETED_TRACK_IDS = 'smart_subha_deleted_track_ids';
+const STORAGE_KEY_ALL_TRACKS = 'smart_subha_master_tracks';
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
 
@@ -106,22 +112,30 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [tracks, setTracks] = useState<Track[]>(() => {
-    const cached = localStorage.getItem(STORAGE_KEY_CUSTOM_TRACKS);
-    let allTracks = DEFAULT_TRACKS;
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        allTracks = [...DEFAULT_TRACKS, ...parsed];
-      } catch (e) {
-        allTracks = DEFAULT_TRACKS;
-      }
-    }
+    try {
+      const deletedRaw = localStorage.getItem(STORAGE_KEY_DELETED_TRACK_IDS);
+      const deletedSet = new Set<string>(deletedRaw ? JSON.parse(deletedRaw) : []);
 
-    return allTracks.map((t) => ({
-      ...t,
-      isOfflineCached: false,
-      isFeatured: featuredTrackIds.includes(t.id),
-    }));
+      const cachedMaster = localStorage.getItem(STORAGE_KEY_ALL_TRACKS);
+      if (cachedMaster) {
+        const parsed: Track[] = JSON.parse(cachedMaster);
+        return parsed.filter((t) => !deletedSet.has(t.id));
+      }
+
+      const cachedCustom = localStorage.getItem(STORAGE_KEY_CUSTOM_TRACKS);
+      const customTracks: Track[] = cachedCustom ? JSON.parse(cachedCustom) : [];
+      const combined = [...customTracks, ...DEFAULT_TRACKS].filter((t) => !deletedSet.has(t.id));
+      
+      const map = new Map<string, Track>();
+      combined.forEach((t) => map.set(t.id, t));
+      return Array.from(map.values()).map((t) => ({
+        ...t,
+        isOfflineCached: false,
+        isFeatured: featuredTrackIds.includes(t.id),
+      }));
+    } catch {
+      return DEFAULT_TRACKS;
+    }
   });
 
   const [playlists, setPlaylists] = useState<Playlist[]>(() => {
@@ -259,6 +273,43 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     return () => unsubscribe();
   }, [syncKey]);
+
+  // Real-Time Cross-Device Global Sync for Admin Music Add / Modify / Delete
+  useEffect(() => {
+    const unsubscribeAdmin = subscribeToAdminGlobalSync((adminData: AdminGlobalPayload) => {
+      if (!adminData) return;
+
+      const deletedSet = new Set<string>(adminData.deletedTrackIds || []);
+
+      if (adminData.allTracks && Array.isArray(adminData.allTracks) && adminData.allTracks.length > 0) {
+        const filteredAll = adminData.allTracks.filter((t) => !deletedSet.has(t.id));
+        setTracks(filteredAll);
+        localStorage.setItem(STORAGE_KEY_ALL_TRACKS, JSON.stringify(filteredAll));
+      } else if (adminData.customTracks && Array.isArray(adminData.customTracks)) {
+        setTracks((prev) => {
+          const map = new Map<string, Track>();
+          DEFAULT_TRACKS.forEach((t) => { if (!deletedSet.has(t.id)) map.set(t.id, t); });
+          prev.forEach((t) => { if (!deletedSet.has(t.id)) map.set(t.id, t); });
+          adminData.customTracks.forEach((t) => { if (!deletedSet.has(t.id)) map.set(t.id, t); });
+          const merged = Array.from(map.values());
+          localStorage.setItem(STORAGE_KEY_ALL_TRACKS, JSON.stringify(merged));
+          return merged;
+        });
+      }
+
+      if (adminData.featuredTrackIds && Array.isArray(adminData.featuredTrackIds)) {
+        setFeaturedTrackIds(adminData.featuredTrackIds);
+        localStorage.setItem(STORAGE_KEY_FEATURED, JSON.stringify(adminData.featuredTrackIds));
+      }
+
+      if (adminData.playlists && Array.isArray(adminData.playlists)) {
+        setPlaylists(adminData.playlists);
+        localStorage.setItem(STORAGE_KEY_PLAYLISTS, JSON.stringify(adminData.playlists));
+      }
+    });
+
+    return () => unsubscribeAdmin();
+  }, []);
 
   // Helper to push state changes to all connected devices in real time
   const syncToCloud = (partial: Partial<SyncPayload> = {}) => {
@@ -839,17 +890,96 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addCustomTrack = async (newTrack: Track) => {
-    const updated = [newTrack, ...tracks];
+    const updated = [newTrack, ...tracks.filter((t) => t.id !== newTrack.id)];
     setTracks(updated);
     
+    let updatedFeatured = featuredTrackIds;
+    if (newTrack.isFeatured && !featuredTrackIds.includes(newTrack.id)) {
+      updatedFeatured = [newTrack.id, ...featuredTrackIds];
+      setFeaturedTrackIds(updatedFeatured);
+      localStorage.setItem(STORAGE_KEY_FEATURED, JSON.stringify(updatedFeatured));
+    }
+
     const customOnly = updated.filter((t) => !DEFAULT_TRACKS.some((dt) => dt.id === t.id));
     localStorage.setItem(STORAGE_KEY_CUSTOM_TRACKS, JSON.stringify(customOnly));
+    localStorage.setItem(STORAGE_KEY_ALL_TRACKS, JSON.stringify(updated));
 
-    if (newTrack.isFeatured) {
-      toggleFeatured(newTrack.id);
-    } else {
-      syncToCloud({ customTracks: customOnly });
+    // Global real-time sync across devices
+    await pushAdminGlobalSync({
+      allTracks: updated,
+      customTracks: customOnly,
+      featuredTrackIds: updatedFeatured,
+      playlists,
+      lastUpdated: Date.now(),
+      updatedBy: 'SUBHA MASTER ADMIN',
+    });
+    syncToCloud({ customTracks: customOnly, featuredTrackIds: updatedFeatured });
+  };
+
+  const updateTrack = async (trackId: string, updates: Partial<Track>) => {
+    const updatedCatalog = tracks.map((t) => (t.id === trackId ? { ...t, ...updates } : t));
+    setTracks(updatedCatalog);
+    localStorage.setItem(STORAGE_KEY_ALL_TRACKS, JSON.stringify(updatedCatalog));
+    const customOnly = updatedCatalog.filter((t) => !DEFAULT_TRACKS.some((dt) => dt.id === t.id));
+    localStorage.setItem(STORAGE_KEY_CUSTOM_TRACKS, JSON.stringify(customOnly));
+
+    if (currentTrack?.id === trackId) {
+      setCurrentTrack((prev) => (prev ? { ...prev, ...updates } : null));
     }
+
+    await pushAdminGlobalSync({
+      allTracks: updatedCatalog,
+      customTracks: customOnly,
+      featuredTrackIds,
+      playlists,
+      lastUpdated: Date.now(),
+      updatedBy: 'SUBHA MASTER ADMIN',
+    });
+    syncToCloud({ customTracks: customOnly, featuredTrackIds });
+  };
+
+  const deleteTrack = async (trackId: string) => {
+    const updated = tracks.filter((t) => t.id !== trackId);
+    setTracks(updated);
+
+    const deletedIds: string[] = (() => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_DELETED_TRACK_IDS);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.from(new Set([...parsed, trackId]));
+      } catch {
+        return [trackId];
+      }
+    })();
+    localStorage.setItem(STORAGE_KEY_DELETED_TRACK_IDS, JSON.stringify(deletedIds));
+
+    const updatedFeatured = featuredTrackIds.filter((id) => id !== trackId);
+    setFeaturedTrackIds(updatedFeatured);
+    localStorage.setItem(STORAGE_KEY_FEATURED, JSON.stringify(updatedFeatured));
+
+    const customOnly = updated.filter((t) => !DEFAULT_TRACKS.some((dt) => dt.id === t.id));
+    localStorage.setItem(STORAGE_KEY_CUSTOM_TRACKS, JSON.stringify(customOnly));
+    localStorage.setItem(STORAGE_KEY_ALL_TRACKS, JSON.stringify(updated));
+
+    if (currentTrack?.id === trackId) {
+      if (updated.length > 0) {
+        playTrack(updated[0], updated);
+      } else {
+        setCurrentTrack(null);
+        setIsPlaying(false);
+      }
+    }
+
+    await pushAdminGlobalSync({
+      allTracks: updated,
+      customTracks: customOnly,
+      deletedTrackIds: deletedIds,
+      featuredTrackIds: updatedFeatured,
+      playlists,
+      lastUpdated: Date.now(),
+      updatedBy: 'SUBHA MASTER ADMIN',
+    });
+    syncToCloud({ customTracks: customOnly, featuredTrackIds: updatedFeatured });
   };
 
   const toggleFavorite = (trackId: string) => {
@@ -904,14 +1034,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
-  const deleteTrack = (trackId: string) => {
-    const updated = tracks.filter((t) => t.id !== trackId);
-    setTracks(updated);
-    const customOnly = updated.filter((t) => !DEFAULT_TRACKS.some((dt) => dt.id === t.id));
-    localStorage.setItem(STORAGE_KEY_CUSTOM_TRACKS, JSON.stringify(customOnly));
-    syncToCloud({ customTracks: customOnly });
-  };
-
   return (
     <MusicContext.Provider
       value={{
@@ -950,6 +1072,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setEqualizerPreset,
         toggleOfflineMode,
         addCustomTrack,
+        updateTrack,
         toggleFavorite,
         toggleSaveTrack,
         toggleOfflineCache,

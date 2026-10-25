@@ -175,7 +175,9 @@ export const subscribeToRealtimeSync = (
 };
 
 export interface AdminGlobalPayload {
+  allTracks?: Track[];
   customTracks: Track[];
+  deletedTrackIds?: string[];
   featuredTrackIds: string[];
   playlists: Playlist[];
   announcement?: string;

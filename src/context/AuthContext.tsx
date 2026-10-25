@@ -34,11 +34,11 @@ const STORAGE_KEY_NAME_ENTERED = 'smart_subha_has_entered_name';
 const SESSION_KEY_ADMIN = 'smart_subha_admin_authorized';
 
 export const DEFAULT_INITIAL_PROFILE: UserProfile = {
-  uid: 'usr_subhajit',
-  displayName: 'Subhajit Sanpui',
-  email: 'iamsubha4200@gmail.com',
+  uid: 'usr_music_listener',
+  displayName: 'Smart Beats Listener',
+  email: 'listener@smartsubha.beats',
   photoURL: '/subhajit-sanpui.jpg',
-  isAdmin: true,
+  isAdmin: false,
   savedTrackIds: [],
   favoriteTrackIds: [],
   recentTrackIds: [],
@@ -52,30 +52,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   
-  // Strict Security: Admin is true for Subhajit or with password
+  // Strict Security: Admin is ONLY true if secret code is verified in session
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     return sessionStorage.getItem(SESSION_KEY_ADMIN) === 'true';
   });
 
-  const [hasEnteredName, setHasEnteredName] = useState<boolean>(() => {
-    return localStorage.getItem(STORAGE_KEY_NAME_ENTERED) === 'true';
-  });
+  const [hasEnteredName, setHasEnteredName] = useState<boolean>(true);
 
   const [user, setUser] = useState<UserProfile>(() => {
-    const cached = localStorage.getItem(STORAGE_KEY_USER);
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        const isSubha = /subha/i.test(parsed.displayName || '');
-        return { 
-          ...parsed, 
-          isAdmin: isSubha || sessionStorage.getItem(SESSION_KEY_ADMIN) === 'true' 
-        };
-      } catch (e) {
-        return DEFAULT_INITIAL_PROFILE;
-      }
-    }
-    return DEFAULT_INITIAL_PROFILE;
+    const isUnlocked = sessionStorage.getItem(SESSION_KEY_ADMIN) === 'true';
+    return {
+      ...DEFAULT_INITIAL_PROFILE,
+      isAdmin: isUnlocked,
+    };
   });
 
   const [loggedInUsers, setLoggedInUsers] = useState<LoggedInUserRecord[]>(() => {
@@ -295,17 +284,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(STORAGE_KEY_USER);
   };
 
-  // STRICT RULE: ONLY the exact password SUBHA ADMIN 420 can unlock Admin Panel
+  // STRICT RULE: ONLY the secret code SUBHA ADMIN 420 (or SUBHA420/420) unlocks Admin Panel
   const verifyAdminPassword = (password: string): boolean => {
-    const clean = password.trim();
-    if (clean === ADMIN_SECRET) {
+    const clean = password.trim().toUpperCase();
+    const normalized = clean.replace(/[^A-Z0-9]/g, '');
+    if (
+      clean === 'SUBHA ADMIN 420' ||
+      normalized === 'SUBHAADMIN420' ||
+      normalized === 'SUBHA420' ||
+      normalized === 'ADMIN420' ||
+      normalized === '420'
+    ) {
       sessionStorage.setItem(SESSION_KEY_ADMIN, 'true');
       setIsAdmin(true);
-      if (user) {
-        const updated = { ...user, isAdmin: true };
-        setUser(updated);
-        localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated));
-      }
+      setUser((prev) => ({ ...prev, isAdmin: true }));
       return true;
     }
     return false;
@@ -314,11 +306,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const revokeAdmin = () => {
     sessionStorage.removeItem(SESSION_KEY_ADMIN);
     setIsAdmin(false);
-    if (user) {
-      const updated = { ...user, isAdmin: false };
-      setUser(updated);
-      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated));
-    }
+    setUser((prev) => ({ ...prev, isAdmin: false }));
   };
 
   const updateUserProfile = (updates: Partial<UserProfile>) => {

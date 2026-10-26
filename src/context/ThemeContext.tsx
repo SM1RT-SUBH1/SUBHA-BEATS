@@ -6,6 +6,7 @@ export interface ThemeConfig {
   id: ThemeId;
   name: string;
   nameBn: string;
+  bgColor: string;
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
@@ -25,6 +26,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'cyber-violet',
     name: 'Cyberpunk Violet',
     nameBn: 'সাইবারপঙ্ক ভায়োলেট (ডিফল্ট)',
+    bgColor: '#06080F',
     primaryColor: '#8B5CF6',
     secondaryColor: '#06B6D4',
     accentColor: '#EC4899',
@@ -42,6 +44,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'midnight-cyan',
     name: 'Electric Midnight',
     nameBn: 'ইলেকট্রিক সায়ান ব্লু',
+    bgColor: '#040915',
     primaryColor: '#06B6D4',
     secondaryColor: '#3B82F6',
     accentColor: '#10B981',
@@ -59,6 +62,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'emerald-bass',
     name: 'Emerald Bass',
     nameBn: 'এমারেল্ড নিয়ন বাস',
+    bgColor: '#030D08',
     primaryColor: '#10B981',
     secondaryColor: '#84CC16',
     accentColor: '#06B6D4',
@@ -76,6 +80,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'sunset-gold',
     name: 'Sunset Gold',
     nameBn: 'সানসেট রয়্যাল গোল্ড',
+    bgColor: '#0D0904',
     primaryColor: '#F59E0B',
     secondaryColor: '#F43F5E',
     accentColor: '#8B5CF6',
@@ -93,6 +98,7 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     id: 'amoled-dark',
     name: 'AMOLED Obsidian',
     nameBn: 'পিউর অ্যামোলেড ব্ল্যাক',
+    bgColor: '#000000',
     primaryColor: '#E2E8F0',
     secondaryColor: '#8B5CF6',
     accentColor: '#38BDF8',
@@ -131,16 +137,22 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_THEME, themeId);
     
-    // Apply CSS variables to root
+    // Apply CSS variables to root and HTML/Body
     const root = document.documentElement;
+    root.style.setProperty('--theme-bg', currentTheme.bgColor);
     root.style.setProperty('--theme-primary', currentTheme.primaryColor);
     root.style.setProperty('--theme-secondary', currentTheme.secondaryColor);
+    root.style.setProperty('--theme-accent', currentTheme.accentColor);
     root.style.setProperty('--theme-glow', currentTheme.glowColor);
+    root.setAttribute('data-theme', themeId);
+
+    // Ensure document.body inherits theme background color directly
+    document.body.style.backgroundColor = currentTheme.bgColor;
     
     // Update theme-color meta tag for mobile status bar
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', currentTheme.primaryColor);
+      metaThemeColor.setAttribute('content', currentTheme.bgColor);
     }
   }, [themeId, currentTheme]);
 

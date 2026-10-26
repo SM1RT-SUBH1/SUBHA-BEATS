@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --theme-bg: #06080F;
+  --theme-primary: #8B5CF6;
+  --theme-secondary: #06B6D4;
+  --theme-accent: #EC4899;
+  --theme-glow: rgba(139, 92, 246, 0.35);
+}
+
+body {
+  background-color: var(--theme-bg);
+  color: #f8fafc;
+  transition: background-color 0.4s ease;
+  overflow-x: hidden;
+}
+
 @layer utilities {
   .glass-panel {
     background: rgba(15, 21, 35, 0.7);
@@ -14,7 +29,7 @@
     background: rgba(23, 32, 51, 0.6);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .neon-glow-purple {
@@ -26,9 +41,10 @@
   }
 
   .neon-text-glow {
-    text-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+    text-shadow: 0 0 12px var(--theme-glow);
   }
 
+  /* Aceternity Animated Border Effect */
   .aceternity-border {
     position: relative;
   }
@@ -37,12 +53,24 @@
     content: '';
     position: absolute;
     inset: -1px;
-    background: linear-gradient(90deg, #8b5cf6, #06b6d4, #ec4899, #8b5cf6);
+    background: linear-gradient(90deg, var(--theme-primary), var(--theme-secondary), var(--theme-accent), var(--theme-primary));
     background-size: 300% 300%;
     animation: borderRotate 6s linear infinite;
     border-radius: inherit;
     z-index: -1;
-    opacity: 0.4;
+    opacity: 0.5;
+  }
+
+  /* Skipper UI Shimmer effect */
+  .skipper-shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 3s infinite linear;
   }
 }
 
@@ -50,6 +78,11 @@
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 /* Vinyl rotation */
@@ -64,4 +97,14 @@
 
 .pause-spin {
   animation-play-state: paused;
+}
+
+/* Audio Wave visualizer keyframes */
+@keyframes waveAnimation {
+  0%, 100% { height: 4px; }
+  50% { height: 18px; }
+}
+
+.animate-wave {
+  animation: waveAnimation 1.2s ease-in-out infinite;
 }

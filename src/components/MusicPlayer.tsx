@@ -278,9 +278,9 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onOpenFullPlayer }) =>
           MOBILE SLEEK MINI PLAYER (Sits right above mobile bottom dock)
           ========================================================================= */}
       <div 
-        className="md:hidden fixed bottom-[64px] inset-x-2.5 z-40 bg-[#0C101A]/95 border border-white/15 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-2xl p-2 transition-all"
+        className="md:hidden fixed bottom-[72px] inset-x-3 z-40 bg-[#0B0F1A]/95 border border-white/15 rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.85)] backdrop-blur-2xl p-2.5 transition-all"
         style={{
-          boxShadow: `0 8px 24px -4px ${currentTheme.glowColor}`
+          boxShadow: `0 8px 26px -4px ${currentTheme.glowColor}`
         }}
       >
         {/* Top 2px progress bar */}
@@ -299,20 +299,30 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onOpenFullPlayer }) =>
           {/* Left: Tappable Track Artwork & Info to Open Full Player */}
           <div 
             onClick={onOpenFullPlayer}
-            className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
+            className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group"
           >
-            <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-slate-900 border border-white/10 flex-shrink-0 shadow">
+            {/* Spinning Vinyl Album Disc */}
+            <div className="relative w-11 h-11 rounded-full overflow-hidden bg-slate-950 border border-white/20 flex-shrink-0 shadow-lg p-0.5">
               <img
                 src={currentTrack.thumbnail}
                 alt={currentTrack.title}
-                className={`w-full h-full object-cover ${isPlaying ? 'animate-spin-slow' : ''}`}
+                className={`w-full h-full rounded-full object-cover ${isPlaying ? 'animate-spin-slow' : 'pause-spin'}`}
               />
+              <div className="absolute inset-0 m-auto w-2.5 h-2.5 bg-black rounded-full border border-white/40" />
             </div>
 
             <div className="min-w-0 flex-1">
-              <h4 className="font-bold text-xs text-white truncate">
-                {currentTrack.title}
-              </h4>
+              <div className="flex items-center gap-1.5">
+                <h4 className="font-bold text-xs text-white truncate">
+                  {currentTrack.title}
+                </h4>
+                {isPlaying && (
+                  <div className="flex items-end gap-[1.5px] h-2.5 flex-shrink-0">
+                    <span className="w-0.5 h-2 bg-cyan-400 rounded-full animate-wave" style={{ animationDelay: '0.1s' }} />
+                    <span className="w-0.5 h-3 bg-purple-400 rounded-full animate-wave" style={{ animationDelay: '0.3s' }} />
+                  </div>
+                )}
+              </div>
               <p className="text-[11px] text-slate-400 truncate mt-0.5 flex items-center gap-1">
                 <span>{currentTrack.artist}</span>
                 {isOfflineMode && <WifiOff className="w-2.5 h-2.5 text-emerald-400 inline" />}

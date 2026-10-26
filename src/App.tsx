@@ -41,6 +41,9 @@ import { Footer } from './components/Footer';
 import { InstallAppModal } from './components/InstallAppModal';
 import { RealtimeSyncModal } from './components/RealtimeSyncModal';
 import { ThemeSwitcherModal } from './components/ThemeSwitcherModal';
+import { YTMusicExplorer } from './components/YTMusicExplorer';
+import { FloatingNavbar } from './components/FloatingNavbar';
+import { PlaylistManagerView } from './components/PlaylistManagerView';
 import { useInstall } from './context/InstallContext';
 import { useTheme } from './context/ThemeContext';
 import { StarsBackground } from './components/ui/stars-background';
@@ -242,7 +245,10 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen ${currentTheme.bgClass} text-slate-100 flex flex-col relative pb-36 md:pb-28 overflow-x-hidden transition-colors duration-500 font-sans`}>
+    <div 
+      className="min-h-screen text-slate-100 flex flex-col relative pb-36 md:pb-28 overflow-x-hidden transition-colors duration-500 font-sans"
+      style={{ backgroundColor: 'var(--theme-bg, #06080F)' }}
+    >
       
       {/* Background Starry Canvas & Theme Atmosphere */}
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
@@ -373,8 +379,13 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* SONG CATALOG SECTION */}
-        <section className="space-y-4">
+        {/* RENDER TAB VIEWS: PLAYLISTS, YT EXPLORE, OR MAIN CATALOG */}
+        {activeTab === 'playlists' ? (
+          <PlaylistManagerView onNavigateToYtExplore={() => setActiveTab('ytexplore')} />
+        ) : activeTab === 'ytexplore' ? (
+          <YTMusicExplorer />
+        ) : (
+          <section className="space-y-4">
           
           {/* Main Catalog Header Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/5">
@@ -569,8 +580,7 @@ export const App: React.FC = () => {
               </button>
             </div>
           ) : viewMode === 'grid' ? (
-            /* 2 columns on mobile, 3 on tablet, 4 on small desktop, 5 on lg, 6 on xl */
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-2.5">
               {displayedTracks.map((track, idx) => (
                 <TrackCard key={`${track.id}-${idx}`} track={track} index={idx} />
               ))}
@@ -584,6 +594,7 @@ export const App: React.FC = () => {
           )}
 
         </section>
+        )}
 
       </main>
 
@@ -646,70 +657,14 @@ export const App: React.FC = () => {
         onClose={() => setIsThemeOpen(false)}
       />
 
-      {/* Mobile-Only Bottom Navigation Dock */}
-      <nav 
-        aria-label="Mobile Navigation"
-        className="md:hidden fixed bottom-1.5 inset-x-2.5 z-40 bg-[#0A0D17]/95 backdrop-blur-2xl border border-white/10 rounded-2xl py-1 px-2 shadow-2xl flex items-center justify-around"
-      >
-        <button
-          onClick={() => { setActiveTab('featured'); setShowAllTracks(false); }}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-colors cursor-pointer ${
-            activeTab === 'featured'
-              ? 'text-white font-bold'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Home className="w-4 h-4 text-purple-400" />
-          <span className="text-[10px]">Home</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setShowAllTracks(true);
-            focusCatalogSearch();
-          }}
-          className="flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-colors text-slate-400 hover:text-cyan-300 cursor-pointer"
-        >
-          <Search className="w-4 h-4 text-cyan-400" />
-          <span className="text-[10px]">Search</span>
-        </button>
-
-        <button
-          onClick={() => { setActiveTab('bengali'); setShowAllTracks(true); }}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-colors cursor-pointer ${
-            activeTab === 'bengali'
-              ? 'text-white font-bold'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Music className="w-4 h-4 text-emerald-400" />
-          <span className="text-[10px]">বাংলা</span>
-        </button>
-
-        <button
-          onClick={() => { setActiveTab('favorites'); setShowAllTracks(true); }}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-colors cursor-pointer ${
-            activeTab === 'favorites'
-              ? 'text-white font-bold'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Star className="w-4 h-4 text-amber-400" />
-          <span className="text-[10px]">Liked</span>
-        </button>
-
-        {/* Downloaded / Saved Songs Button in Mobile Dock */}
-        <button
-          onClick={() => { setActiveTab('offline'); setShowAllTracks(true); }}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
-            activeTab === 'offline' ? 'text-cyan-300 font-bold bg-cyan-500/20' : 'text-slate-400 hover:text-cyan-300'
-          }`}
-          title="Downloaded & Saved Songs"
-        >
-          <DownloadCloud className="w-4 h-4 text-cyan-400" />
-          <span className="text-[10px] font-bold">Saved</span>
-        </button>
-      </nav>
+      {/* Aceternity & Skipper UI Floating Island Dock Navbar */}
+      <FloatingNavbar
+        activeTab={activeTab}
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
+          if (tab !== 'featured' && tab !== 'ytexplore') setShowAllTracks(true);
+        }}
+      />
 
       {/* Footer */}
       <Footer 

@@ -75,6 +75,11 @@ interface MusicContextType {
   addTrackToPlaylist: (playlistId: string, trackId: string) => void;
   deleteTrack: (trackId: string) => Promise<void>;
 
+  // YouTube Explorer Saved Playlist
+  ytSavedTracks: Track[];
+  addTrackToYtPlaylist: (track: Track) => void;
+  removeTrackFromYtPlaylist: (trackId: string) => void;
+
   // Real-Time Cross-Device Cloud Sync
   realtimeSyncInfo: {
     isConnected: boolean;
@@ -93,6 +98,7 @@ const STORAGE_KEY_PLAYLISTS = 'smart_subha_playlists';
 const STORAGE_KEY_FAVORITES = 'smart_subha_favorites';
 const STORAGE_KEY_SAVED = 'smart_subha_saved';
 const STORAGE_KEY_FEATURED = 'smart_subha_featured_ids';
+const STORAGE_KEY_YT_SAVED = 'smart_subha_yt_playlist';
 const STORAGE_KEY_DELETED_TRACK_IDS = 'smart_subha_deleted_track_ids';
 const STORAGE_KEY_ALL_TRACKS = 'smart_subha_master_tracks';
 
@@ -160,6 +166,32 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return cached ? JSON.parse(cached) : [];
   });
 
+  const [ytSavedTracks, setYtSavedTracks] = useState<Track[]>(() => {
+    try {
+      const cached = localStorage.getItem(STORAGE_KEY_YT_SAVED);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const addTrackToYtPlaylist = (track: Track) => {
+    setYtSavedTracks((prev) => {
+      if (prev.some((t) => t.id === track.id)) return prev;
+      const updated = [track, ...prev];
+      localStorage.setItem(STORAGE_KEY_YT_SAVED, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const removeTrackFromYtPlaylist = (trackId: string) => {
+    setYtSavedTracks((prev) => {
+      const updated = prev.filter((t) => t.id !== trackId);
+      localStorage.setItem(STORAGE_KEY_YT_SAVED, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   // Initially null so bottom player is hidden on refresh until user selects a song
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
@@ -184,6 +216,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const playerRef = useRef<any>(null);
   const ytReadyRef = useRef<boolean>(false);
   const offlineAudioRef = useRef<HTMLAudioElement | null>(null);
+  const carrierAudioRef = useRef<HTMLAudioElement | null>(null);
   const isUsingOfflineAudioRef = useRef<boolean>(false);
   const timeUpdateIntervalRef = useRef<any>(null);
   const animFrameRef = useRef<any>(null);
@@ -394,18 +427,40 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Safe background audio session without noisy oscillators or popping clicks
+  // Safe background audio session carrier loop for OS lock screen & background keep-alive
+  const SILENT_AUDIO_URI = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
   const enableBackgroundAudioKeepAlive = () => {
-    // Pure YouTube audio stream without hardware oscillator crackles or looping pop noises
+    try {
+      if (!carrierAudioRef.current) {
+        carrierAudioRef.current = new Audio(SILENT_AUDIO_URI);
+        carrierAudioRef.current.loop = true;
+        carrierAudioRef.current.volume = 0.01;
+      }
+      carrierAudioRef.current.play().catch(() => {});
+    } catch (e) {
+      // Audio element not permitted
+    }
   };
 
-  // Resilient background service check: keeps music playing in background on mobile & desktop
+  const pauseBackgroundAudioKeepAlive = () => {
+    if (carrierAudioRef.current) {
+      try {
+        carrierAudioRef.current.pause();
+      } catch (e) {}
+    }
+  };
+
+  // Resilient background service: keeps music playing in background on mobile & desktop when locked or tab switched
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         // Tab went to background or phone screen locked: keep audio playing seamlessly
-        if (userWantsPlayRef.current && playerRef.current?.playVideo) {
-          playerRef.current.playVideo();
+        if (userWantsPlayRef.current) {
+          enableBackgroundAudioKeepAlive();
+          if (playerRef.current?.playVideo) {
+            playerRef.current.playVideo();
+          }
         }
       } else if (userWantsPlayRef.current) {
         // Returned to foreground: ensure wakelock and active playback
@@ -425,14 +480,14 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
-  // Register MediaSession API for OS background & lock-screen playback controls
+  // Register MediaSession API for OS background, lock-screen & notification playback controls
   useEffect(() => {
     if ('mediaSession' in navigator && currentTrack) {
       try {
         navigator.mediaSession.metadata = new MediaMetadata({
           title: currentTrack.title,
           artist: currentTrack.artist,
-          album: 'Smart Subha Beats',
+          album: 'Subha BEATS Studio',
           artwork: [
             { src: currentTrack.thumbnail, sizes: '96x96', type: 'image/jpeg' },
             { src: currentTrack.thumbnail, sizes: '128x128', type: 'image/jpeg' },
@@ -445,25 +500,57 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         navigator.mediaSession.setActionHandler('play', () => {
           userWantsPlayRef.current = true;
-          togglePlayPause();
+          enableBackgroundAudioKeepAlive();
+          if (playerRef.current?.playVideo) {
+            playerRef.current.playVideo();
+          }
+          if (offlineAudioRef.current && isUsingOfflineAudioRef.current) {
+            offlineAudioRef.current.play().catch(() => {});
+          }
+          setIsPlaying(true);
         });
+
         navigator.mediaSession.setActionHandler('pause', () => {
           userWantsPlayRef.current = false;
-          togglePlayPause();
+          pauseBackgroundAudioKeepAlive();
+          if (playerRef.current?.pauseVideo) {
+            playerRef.current.pauseVideo();
+          }
+          if (offlineAudioRef.current && isUsingOfflineAudioRef.current) {
+            offlineAudioRef.current.pause();
+          }
+          setIsPlaying(false);
         });
+
         navigator.mediaSession.setActionHandler('stop', () => {
           userWantsPlayRef.current = false;
-          togglePlayPause();
+          pauseBackgroundAudioKeepAlive();
+          if (playerRef.current?.pauseVideo) {
+            playerRef.current.pauseVideo();
+          }
+          if (offlineAudioRef.current && isUsingOfflineAudioRef.current) {
+            offlineAudioRef.current.pause();
+          }
+          setIsPlaying(false);
         });
-        navigator.mediaSession.setActionHandler('previoustrack', () => playPrevious());
-        navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
+
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+          playPrevious();
+        });
+
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+          playNext();
+        });
+
         navigator.mediaSession.setActionHandler('seekto', (details) => {
           if (details.seekTime !== undefined) seekTo(details.seekTime);
         });
+
         navigator.mediaSession.setActionHandler('seekforward', (details) => {
           const skip = details.seekOffset || 10;
           seekTo(Math.min(duration, currentTime + skip));
         });
+
         navigator.mediaSession.setActionHandler('seekbackward', (details) => {
           const skip = details.seekOffset || 10;
           seekTo(Math.max(0, currentTime - skip));
@@ -536,6 +623,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     setIsBuffering(false);
                     setPlaybackState('paused');
                     releaseWakeLock();
+                    pauseBackgroundAudioKeepAlive();
                   }
                   break;
                 case 3:
@@ -1082,6 +1170,9 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         createPlaylist,
         addTrackToPlaylist,
         deleteTrack,
+        ytSavedTracks,
+        addTrackToYtPlaylist,
+        removeTrackFromYtPlaylist,
         realtimeSyncInfo: {
           isConnected,
           lastSyncedAt,

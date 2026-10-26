@@ -5,12 +5,12 @@ export interface Track {
   thumbnail: string;
   duration: number; // in seconds
   durationFormatted: string;
-  youtubeUrl: string;
+  youtubeUrl?: string;
   isCurated?: boolean; // added by Subha Admin
   isFeatured?: boolean; // featured on homepage
   addedBy?: string; // username or user email
   addedAt: number;
-  category: 'lofi' | 'bengali' | 'edm' | 'trending' | 'pop' | 'custom';
+  category: 'lofi' | 'bengali' | 'edm' | 'trending' | 'pop' | 'custom' | string;
   audioQuality?: 'standard' | 'high' | 'ultra_hd';
   isOfflineCached?: boolean;
 }

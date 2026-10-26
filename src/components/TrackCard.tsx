@@ -4,7 +4,6 @@ import {
   Pause, 
   Heart, 
   CheckCircle2, 
-  WifiOff
 } from 'lucide-react';
 import { Track } from '../types';
 import { useMusic } from '../context/MusicContext';
@@ -46,44 +45,47 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track }) => {
   return (
     <div
       onClick={() => playTrack(track)}
-      className={`group relative rounded-2xl p-2.5 sm:p-3 cursor-pointer transition-all duration-200 border ${
+      className={`group relative rounded-xl p-1.5 sm:p-2 cursor-pointer transition-all duration-200 border ${
         isCurrent
-          ? 'bg-slate-900/90 border-purple-500/50 shadow-xl'
-          : 'bg-[#0E131F]/60 hover:bg-[#141B2B]/80 border-white/5 hover:border-white/15'
+          ? 'bg-slate-900/95 border-purple-500/60 shadow-lg scale-[1.01]'
+          : 'bg-[#0D111D]/80 hover:bg-[#13192B]/90 border-white/5 hover:border-white/20 hover:shadow-md'
       }`}
       style={{
-        boxShadow: isCurrent ? `0 10px 25px -5px ${currentTheme.glowColor}` : undefined
+        boxShadow: isCurrent ? `0 6px 20px -3px ${currentTheme.glowColor}` : undefined
       }}
     >
-      {/* Album Artwork Cover */}
-      <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-slate-950 mb-2.5 shadow-md">
+      {/* Compact Album Artwork Cover */}
+      <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-slate-950 mb-1.5 shadow-inner">
         <img
           src={track.thumbnail}
           alt={track.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
           loading="lazy"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = `https://i.ytimg.com/vi/${track.id}/hqdefault.jpg`;
+          }}
         />
 
         {/* Ambient Dark Gradient on Hover */}
-        <div className={`absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center ${
-          isCurrent && isPlaying ? 'bg-black/50' : ''
+        <div className={`absolute inset-0 bg-black/25 group-hover:bg-black/45 transition-colors flex items-center justify-center ${
+          isCurrent && isPlaying ? 'bg-black/55' : ''
         }`}>
           {/* Animated Wave Indicator if Currently Playing */}
           {isCurrent && isPlaying && (
-            <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/40 backdrop-blur-[2px]">
-              <span className="w-1 h-5 rounded-full bg-cyan-400 animate-wave" style={{ animationDelay: '0.1s' }} />
-              <span className="w-1 h-8 rounded-full bg-purple-400 animate-wave" style={{ animationDelay: '0.3s' }} />
-              <span className="w-1 h-6 rounded-full bg-indigo-400 animate-wave" style={{ animationDelay: '0.2s' }} />
+            <div className="absolute inset-0 flex items-center justify-center gap-0.5 bg-black/40 backdrop-blur-[2px]">
+              <span className="w-0.5 h-3 rounded-full bg-cyan-400 animate-wave" style={{ animationDelay: '0.1s' }} />
+              <span className="w-0.5 h-4.5 rounded-full bg-purple-400 animate-wave" style={{ animationDelay: '0.3s' }} />
+              <span className="w-0.5 h-3 rounded-full bg-indigo-400 animate-wave" style={{ animationDelay: '0.2s' }} />
             </div>
           )}
 
-          {/* Spotify-style Floating Action Play Button */}
+          {/* Floating Action Play Button */}
           <button
             onClick={handlePlayClick}
-            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center shadow-xl transition-all duration-200 transform ${
+            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shadow-xl transition-all duration-200 transform ${
               isCurrent
                 ? 'scale-100 opacity-100 text-white'
-                : 'bg-white text-slate-950 opacity-90 sm:opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 hover:scale-105 hover:bg-white'
+                : 'bg-white text-slate-950 opacity-90 sm:opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 hover:scale-105'
             }`}
             style={{
               background: isCurrent 
@@ -93,56 +95,58 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track }) => {
             title={isCurrent && isPlaying ? "Pause" : "Play"}
           >
             {isCurrent && isPlaying ? (
-              <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current text-white" />
+              <Pause className="w-3.5 h-3.5 fill-current text-white" />
             ) : (
-              <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
+              <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
             )}
           </button>
         </div>
 
-        {/* Quiet Top Corner Badges (No loud pills, clean typography) */}
+        {/* Badges */}
         {track.isFeatured && (
-          <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-amber-500/90 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow">
+          <div className="absolute top-1 left-1 px-1 py-0.2 rounded bg-amber-500/90 text-slate-950 text-[8px] font-black uppercase tracking-wider shadow">
             Featured
           </div>
         )}
 
         {/* Offline cached badge */}
         {track.isOfflineCached && (
-          <div className="absolute top-2 right-2 p-1 rounded-md bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 backdrop-blur-md">
-            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+          <div className="absolute top-1 right-1 p-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 backdrop-blur-md">
+            <CheckCircle2 className="w-2 h-2 text-emerald-400" />
           </div>
         )}
 
         {/* Quick Heart on Artwork */}
         <button
           onClick={handleFavoriteClick}
-          className={`absolute bottom-2 right-2 p-1.5 rounded-full backdrop-blur-md transition-all ${
+          className={`absolute bottom-1 right-1 p-1 rounded-full backdrop-blur-md transition-all ${
             isFav 
-              ? 'bg-rose-500/20 text-rose-400 opacity-100' 
+              ? 'bg-rose-500/30 text-rose-400 opacity-100' 
               : 'bg-black/50 text-white opacity-0 group-hover:opacity-100 hover:text-rose-400'
           }`}
           title={isFav ? "Favorited" : "Like"}
         >
-          <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
+          <Heart className={`w-3 h-3 ${isFav ? 'fill-current' : ''}`} />
         </button>
       </div>
 
       {/* Track Details */}
-      <div className="space-y-0.5">
+      <div className="space-y-0.5 px-0.5">
         <h4 
-          className={`font-semibold text-xs sm:text-sm truncate transition-colors ${
-            isCurrent ? 'text-cyan-300' : 'text-slate-100 group-hover:text-purple-200'
+          className={`font-semibold text-[11px] sm:text-xs leading-tight line-clamp-1 transition-colors ${
+            isCurrent ? 'text-cyan-300 font-bold' : 'text-slate-100 group-hover:text-purple-200'
           }`}
           title={track.title}
         >
           {track.title}
         </h4>
         
-        <div className="flex items-center justify-between text-[11px] text-slate-400">
-          <span className="truncate max-w-[70%]">{track.artist}</span>
-          <span className="font-mono text-[10px] text-slate-500 flex-shrink-0">
-            {track.durationFormatted}
+        <div className="flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400">
+          <span className="truncate max-w-[70%]" title={track.artist}>
+            {track.artist}
+          </span>
+          <span className="font-mono text-[8px] sm:text-[9px] text-slate-500 flex-shrink-0">
+            {track.durationFormatted || '3:30'}
           </span>
         </div>
       </div>

@@ -161,10 +161,11 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(DEFAULT_TRACKS[0]);
+  // Initially null so bottom player is hidden on refresh until user selects a song
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
-  const [duration, setDuration] = useState<number>(DEFAULT_TRACKS[0]?.duration || 225);
+  const [duration, setDuration] = useState<number>(0);
   const [volume, setVolumeState] = useState<number>(85);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isBuffering, setIsBuffering] = useState<boolean>(false);
@@ -652,7 +653,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     enableBackgroundAudioKeepAlive();
 
-    const shouldUseOfflineAudio = isOfflineMode || !navigator.onLine || (track.isOfflineCached && (!playerRef.current || !navigator.onLine));
+    // Only use offline HTML5 audio if the device is truly offline without internet connection
+    const shouldUseOfflineAudio = !navigator.onLine;
 
     if (shouldUseOfflineAudio) {
       isUsingOfflineAudioRef.current = true;

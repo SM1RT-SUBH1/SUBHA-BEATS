@@ -1,14 +1,15 @@
-import React from 'react';
-import { ExternalLink, Music, Radio, ShieldCheck, Download, Sparkles } from 'lucide-react';
+import { ExternalLink, Music, Radio, ShieldCheck, Download, Sparkles, Crown } from 'lucide-react';
 import { useInstall } from '../context/InstallContext';
 import { useMusic } from '../context/MusicContext';
 
 interface FooterProps {
   onOpenRealtimeSyncModal?: () => void;
+  onOpenAdminModal?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   onOpenRealtimeSyncModal,
+  onOpenAdminModal,
 }) => {
   const { isInstalled, promptInstall } = useInstall();
   const { realtimeSyncInfo } = useMusic();
@@ -62,6 +63,18 @@ export const Footer: React.FC<FooterProps> = ({
               <span>Real-Time Sync: {realtimeSyncInfo.roomCode}</span>
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
             </button>
+
+            {/* Admin Panel Action Button */}
+            {onOpenAdminModal && (
+              <button
+                onClick={onOpenAdminModal}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 hover:from-amber-500/35 hover:to-orange-500/35 border border-amber-500/50 text-amber-300 hover:text-white text-xs font-bold transition-all hover:scale-105 active:scale-95 shadow-md shadow-amber-500/10 cursor-pointer"
+                title="Open Subha Beats Admin Portal"
+              >
+                <Crown className="w-3.5 h-3.5 text-amber-400" />
+                <span>Admin Panel 👑</span>
+              </button>
+            )}
 
             {/* PWA App Install Action */}
             <button

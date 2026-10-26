@@ -10,14 +10,13 @@ import {
   Shuffle, 
   Maximize2, 
   Sliders, 
-  Radio, 
-  Sparkles,
+  Heart,
+  ChevronUp,
   WifiOff
 } from 'lucide-react';
 import { useMusic } from '../context/MusicContext';
-import { Visualizer } from './Visualizer';
-
 import { useTheme } from '../context/ThemeContext';
+import { Visualizer } from './Visualizer';
 
 interface MusicPlayerProps {
   onOpenFullPlayer: () => void;
@@ -42,13 +41,11 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onOpenFullPlayer }) =>
     toggleRepeat,
     isShuffled,
     toggleShuffle,
-    audioQuality,
-    setAudioQuality,
+    favoriteTrackIds,
+    toggleFavorite,
     equalizerPreset,
     isOfflineMode,
   } = useMusic();
-
-  const [isHovered, setIsHovered] = useState(false);
 
   if (!currentTrack) return null;
 
@@ -60,6 +57,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onOpenFullPlayer }) =>
   };
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const isFav = favoriteTrackIds.includes(currentTrack.id);
 
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
@@ -67,133 +65,144 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onOpenFullPlayer }) =>
   };
 
   return (
-    <div 
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="fixed bottom-16 md:bottom-0 left-0 right-0 z-30 p-2 sm:p-4 pointer-events-none transition-all duration-300"
-    >
+    <>
+      {/* =========================================================================
+          DESKTOP BOTTOM PLAYER BAR (Spotify / Apple Music Studio Architecture)
+          ========================================================================= */}
       <div 
-        className="max-w-6xl mx-auto rounded-3xl glass-panel border border-white/10 shadow-2xl pointer-events-auto backdrop-blur-2xl px-3.5 sm:px-6 py-3 sm:py-3.5 flex flex-col gap-2 relative overflow-hidden"
+        className="hidden md:block fixed bottom-0 left-0 right-0 z-40 bg-[#090C15]/95 border-t border-white/10 backdrop-blur-2xl transition-all duration-300"
         style={{
-          boxShadow: `0 20px 40px -15px ${currentTheme.glowColor}`
+          boxShadow: `0 -10px 30px -10px ${currentTheme.glowColor}`
         }}
       >
-        
-        {/* Aceternity animated top progress glow beam */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-slate-800/80">
+        {/* Subtle Top 2px Progress Indicator */}
+        <div className="w-full h-[2px] bg-white/5 relative">
           <div 
-            className="h-full shadow-md transition-all duration-200"
-            style={{ 
+            className="h-full transition-all duration-200"
+            style={{
               width: `${progressPercent}%`,
-              background: `linear-gradient(to right, ${currentTheme.secondaryColor}, ${currentTheme.primaryColor}, ${currentTheme.accentColor})`
+              background: `linear-gradient(to right, ${currentTheme.primaryColor}, ${currentTheme.secondaryColor})`
             }}
           />
         </div>
 
-        {/* Main Player Row */}
-        <div className="flex items-center justify-between gap-3 sm:gap-6">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 h-20 flex items-center justify-between gap-6">
           
-          {/* Left: Track Info & Vinyl Art */}
-          <div 
-            onClick={onOpenFullPlayer}
-            className="flex items-center gap-3 min-w-0 max-w-[280px] sm:max-w-xs cursor-pointer group flex-shrink-0"
-          >
-            <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-900 border border-purple-500/30 flex-shrink-0 shadow-lg">
+          {/* Left: Track Information & Like */}
+          <div className="flex items-center gap-3.5 min-w-0 w-72 flex-shrink-0">
+            <div 
+              onClick={onOpenFullPlayer}
+              className="relative w-13 h-13 rounded-xl overflow-hidden bg-slate-900 border border-white/10 flex-shrink-0 shadow-md cursor-pointer group"
+            >
               <img
                 src={currentTrack.thumbnail}
                 alt={currentTrack.title}
-                className={`w-full h-full object-cover rounded-xl ${isPlaying ? 'animate-spin-slow' : 'pause-spin'}`}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
               />
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full bg-slate-950 border border-white/40" />
+              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/0 transition-colors flex items-center justify-center">
+                <ChevronUp className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
 
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h4 className="font-heading font-semibold text-sm text-slate-100 truncate group-hover:text-purple-300 transition-colors">
-                  {currentTrack.title}
-                </h4>
-              </div>
-              <p className="text-xs text-slate-400 truncate flex items-center gap-1">
+            <div className="min-w-0 flex-1">
+              <h4 
+                onClick={onOpenFullPlayer}
+                className="font-bold text-sm text-white truncate cursor-pointer hover:text-cyan-300 transition-colors"
+                title={currentTrack.title}
+              >
+                {currentTrack.title}
+              </h4>
+              <p className="text-xs text-slate-400 truncate flex items-center gap-1.5 mt-0.5">
                 <span>{currentTrack.artist}</span>
-                {isOfflineMode && <WifiOff className="w-3 h-3 text-emerald-400 inline" />}
+                {isOfflineMode && (
+                  <span className="text-[10px] text-emerald-400 flex items-center gap-0.5">
+                    <WifiOff className="w-3 h-3" /> Offline
+                  </span>
+                )}
               </p>
             </div>
+
+            <button
+              onClick={() => toggleFavorite(currentTrack.id)}
+              className={`p-2 rounded-xl transition-all cursor-pointer ${
+                isFav 
+                  ? 'text-rose-400 hover:text-rose-300' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title={isFav ? "Favorited" : "Add to favorites"}
+            >
+              <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
+            </button>
           </div>
 
-          {/* Center: Controls & Audio Waveform Visualizer */}
-          <div className="flex-1 max-w-xl flex flex-col items-center gap-1">
-            <div className="flex items-center gap-3 sm:gap-5">
-              
-              {/* Shuffle */}
+          {/* Center: Controls & Audio Scrubber */}
+          <div className="flex-1 max-w-xl flex flex-col items-center gap-1.5">
+            
+            {/* Transport Buttons */}
+            <div className="flex items-center gap-4">
               <button
                 onClick={toggleShuffle}
-                className={`p-2 rounded-xl transition-all ${
+                className={`p-2 rounded-xl transition-all cursor-pointer ${
                   isShuffled 
-                    ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-500/30' 
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'text-cyan-300 bg-cyan-950/50 border border-cyan-500/30' 
+                    : 'text-slate-400 hover:text-white'
                 }`}
                 title={isShuffled ? "Shuffle On" : "Shuffle Off"}
               >
                 <Shuffle className="w-4 h-4" />
               </button>
 
-              {/* Prev */}
               <button
                 onClick={playPrevious}
-                className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all active:scale-95"
+                className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
                 title="Previous Track"
               >
-                <SkipBack className="w-5 h-5 fill-current" />
+                <SkipBack className="w-4 h-4 fill-current" />
               </button>
 
-              {/* Play/Pause Button */}
               <button
                 onClick={togglePlayPause}
-                className="w-11 h-11 rounded-2xl text-slate-950 flex items-center justify-center shadow-lg transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-slate-950 shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
                 style={{
                   background: `linear-gradient(135deg, ${currentTheme.primaryColor}, ${currentTheme.secondaryColor})`,
-                  boxShadow: `0 4px 16px -2px ${currentTheme.glowColor}`
+                  boxShadow: `0 0 20px ${currentTheme.glowColor}`
                 }}
                 title={isPlaying ? "Pause" : "Play"}
               >
                 {isPlaying ? (
-                  <Pause className="w-5 h-5 fill-current" />
+                  <Pause className="w-4 h-4 fill-current text-white" />
                 ) : (
-                  <Play className="w-5 h-5 fill-current ml-0.5" />
+                  <Play className="w-4 h-4 fill-current text-white ml-0.5" />
                 )}
               </button>
 
-              {/* Next */}
               <button
                 onClick={playNext}
-                className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all active:scale-95"
+                className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
                 title="Next Track"
               >
-                <SkipForward className="w-5 h-5 fill-current" />
+                <SkipForward className="w-4 h-4 fill-current" />
               </button>
 
-              {/* Repeat */}
               <button
                 onClick={toggleRepeat}
-                className={`p-2 rounded-xl transition-all ${
+                className={`p-2 rounded-xl transition-all cursor-pointer ${
                   repeatMode !== 'off' 
-                    ? 'text-purple-400 bg-purple-950/40 border border-purple-500/30' 
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'text-purple-400 bg-purple-950/50 border border-purple-500/30' 
+                    : 'text-slate-400 hover:text-white'
                 }`}
                 title={`Repeat: ${repeatMode}`}
               >
                 <Repeat className="w-4 h-4" />
               </button>
-
             </div>
 
-            {/* Scrubber & Times */}
-            <div className="w-full flex items-center gap-2.5 text-[11px] font-mono text-slate-400">
-              <span className="w-9 text-right">{formatTime(currentTime)}</span>
-              
+            {/* Scrubber Slider & Monospace Times */}
+            <div className="w-full flex items-center gap-3 text-[11px] font-mono text-slate-400">
+              <span className="w-8 text-right font-medium text-slate-400">
+                {formatTime(currentTime)}
+              </span>
+
               <div className="flex-1 relative flex items-center">
                 <input
                   type="range"
@@ -201,31 +210,36 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onOpenFullPlayer }) =>
                   max="100"
                   value={isNaN(progressPercent) ? 0 : progressPercent}
                   onChange={handleSeekChange}
-                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500 focus:outline-none"
+                  className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer focus:outline-none"
+                  style={{ accentColor: currentTheme.primaryColor }}
                 />
               </div>
 
-              <span className="w-9">{formatTime(duration)}</span>
+              <span className="w-8 font-medium text-slate-500">
+                {formatTime(duration)}
+              </span>
             </div>
+
           </div>
 
-          {/* Right: Visualizer Preview, Volume & Expand */}
-          <div className="hidden md:flex items-center gap-3">
+          {/* Right: Audio Features, Volume & Full Player launcher */}
+          <div className="flex items-center justify-end gap-3 w-72 flex-shrink-0">
             
-            {/* Visualizer pill */}
-            <div 
-              onClick={onOpenFullPlayer} 
-              className="w-24 h-8 bg-slate-900/80 rounded-xl px-1.5 border border-purple-500/20 cursor-pointer hover:border-purple-500/50 transition-colors flex items-center justify-center"
-              title="Click for Full Immersive Visualizer"
+            {/* Equalizer Preset Pill */}
+            <button
+              onClick={onOpenFullPlayer}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 text-[11px] font-semibold text-slate-300 hover:text-white cursor-pointer transition-colors"
+              title="Sound Preset"
             >
-              <Visualizer barCount={18} height={28} />
-            </div>
+              <Sliders className="w-3.5 h-3.5 text-purple-400" />
+              <span>{equalizerPreset}</span>
+            </button>
 
-            {/* Volume */}
-            <div className="flex items-center gap-1.5">
+            {/* Volume Control */}
+            <div className="flex items-center gap-2">
               <button
                 onClick={toggleMute}
-                className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                className="p-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
                 title={isMuted ? "Unmute" : "Mute"}
               >
                 {isMuted || volume === 0 ? (
@@ -234,22 +248,23 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onOpenFullPlayer }) =>
                   <Volume2 className="w-4 h-4" />
                 )}
               </button>
-              
+
               <input
                 type="range"
                 min="0"
                 max="100"
                 value={isMuted ? 0 : volume}
                 onChange={(e) => setVolume(parseInt(e.target.value))}
-                className="w-16 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-400"
+                className="w-20 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                style={{ accentColor: currentTheme.secondaryColor }}
               />
             </div>
 
-            {/* Expand Modal */}
+            {/* Maximize to Studio Full Modal */}
             <button
               onClick={onOpenFullPlayer}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors"
-              title="Full Screen Immersive Player"
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              title="Open Immersive Studio Player"
             >
               <Maximize2 className="w-4 h-4" />
             </button>
@@ -257,8 +272,98 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onOpenFullPlayer }) =>
           </div>
 
         </div>
-
       </div>
-    </div>
+
+      {/* =========================================================================
+          MOBILE SLEEK MINI PLAYER (Sits right above mobile bottom dock)
+          ========================================================================= */}
+      <div 
+        className="md:hidden fixed bottom-[64px] inset-x-2.5 z-40 bg-[#0C101A]/95 border border-white/15 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-2xl p-2 transition-all"
+        style={{
+          boxShadow: `0 8px 24px -4px ${currentTheme.glowColor}`
+        }}
+      >
+        {/* Top 2px progress bar */}
+        <div className="absolute top-0 inset-x-3 h-[2px] bg-white/10 rounded-full overflow-hidden">
+          <div 
+            className="h-full transition-all duration-200"
+            style={{
+              width: `${progressPercent}%`,
+              background: `linear-gradient(to right, ${currentTheme.primaryColor}, ${currentTheme.secondaryColor})`
+            }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-2.5 pt-0.5">
+          
+          {/* Left: Tappable Track Artwork & Info to Open Full Player */}
+          <div 
+            onClick={onOpenFullPlayer}
+            className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
+          >
+            <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-slate-900 border border-white/10 flex-shrink-0 shadow">
+              <img
+                src={currentTrack.thumbnail}
+                alt={currentTrack.title}
+                className={`w-full h-full object-cover ${isPlaying ? 'animate-spin-slow' : ''}`}
+              />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h4 className="font-bold text-xs text-white truncate">
+                {currentTrack.title}
+              </h4>
+              <p className="text-[11px] text-slate-400 truncate mt-0.5 flex items-center gap-1">
+                <span>{currentTrack.artist}</span>
+                {isOfflineMode && <WifiOff className="w-2.5 h-2.5 text-emerald-400 inline" />}
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Quick Touch Playback Controls */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={() => toggleFavorite(currentTrack.id)}
+              className="p-2 text-slate-400 hover:text-rose-400 active:scale-90 transition-all cursor-pointer"
+              title="Like"
+            >
+              <Heart className={`w-4 h-4 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+            </button>
+
+            <button
+              onClick={togglePlayPause}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-950 shadow-md transition-transform active:scale-95 cursor-pointer"
+              style={{
+                background: `linear-gradient(135deg, ${currentTheme.primaryColor}, ${currentTheme.secondaryColor})`
+              }}
+              title={isPlaying ? "Pause" : "Play"}
+            >
+              {isPlaying ? (
+                <Pause className="w-4 h-4 fill-current text-white" />
+              ) : (
+                <Play className="w-4 h-4 fill-current text-white ml-0.5" />
+              )}
+            </button>
+
+            <button
+              onClick={playNext}
+              className="p-2 text-slate-300 hover:text-white active:scale-90 transition-all cursor-pointer"
+              title="Next Track"
+            >
+              <SkipForward className="w-4 h-4 fill-current" />
+            </button>
+
+            <button
+              onClick={onOpenFullPlayer}
+              className="p-2 text-slate-400 hover:text-white active:scale-90 transition-all cursor-pointer"
+              title="Expand"
+            >
+              <ChevronUp className="w-4 h-4" />
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </>
   );
 };

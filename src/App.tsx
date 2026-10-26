@@ -21,7 +21,8 @@ import {
   Volume2,
   X,
   Compass,
-  Check
+  Check,
+  Home
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useMusic } from './context/MusicContext';
@@ -44,7 +45,6 @@ import { useInstall } from './context/InstallContext';
 import { useTheme } from './context/ThemeContext';
 import { StarsBackground } from './components/ui/stars-background';
 import { ShootingStars } from './components/ui/shooting-stars';
-import { HoverBorderGradient } from './components/ui/hover-border-gradient';
 
 export const App: React.FC = () => {
   const { isAdmin } = useAuth();
@@ -80,6 +80,7 @@ export const App: React.FC = () => {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isFullPlayerOpen, setIsFullPlayerOpen] = useState(false);
   const [isOfflineOpen, setIsOfflineOpen] = useState(false);
+  const [isBengaliOpen, setIsBengaliOpen] = useState(false);
   const [isRealtimeSyncOpen, setIsRealtimeSyncOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
 
@@ -226,12 +227,11 @@ export const App: React.FC = () => {
   const handleShufflePlayAll = () => {
     if (displayedTracks.length === 0) return;
     confetti({
-      particleCount: 50,
+      particleCount: 40,
       spread: 60,
       origin: { y: 0.8 },
       colors: ['#a855f7', '#06b6d4', '#ec4899', '#10b981']
     });
-
     const shuffled = [...displayedTracks].sort(() => Math.random() - 0.5);
     playTrack(shuffled[0], shuffled);
   };
@@ -242,29 +242,25 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen ${currentTheme.bgClass} text-slate-100 flex flex-col relative pb-32 overflow-x-hidden selection:bg-purple-500/30 selection:text-cyan-200 transition-colors duration-500 font-sans`}>
+    <div className={`min-h-screen ${currentTheme.bgClass} text-slate-100 flex flex-col relative pb-36 md:pb-28 overflow-x-hidden transition-colors duration-500 font-sans`}>
       
-      {/* Global Aceternity UI Stars & Cosmic Atmosphere Canvas with Dynamic Theme Radiance */}
+      {/* Background Starry Canvas & Theme Atmosphere */}
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        <StarsBackground starDensity={0.0002} allStarsTwinkle={true} minTwinkleSpeed={0.4} maxTwinkleSpeed={1.2} />
-        <ShootingStars minSpeed={15} maxSpeed={35} minDelay={2000} maxDelay={5000} starColor={currentTheme.primaryColor} trailColor={currentTheme.secondaryColor} />
+        <StarsBackground starDensity={0.00015} allStarsTwinkle={true} minTwinkleSpeed={0.5} maxTwinkleSpeed={1.5} />
+        <ShootingStars minSpeed={15} maxSpeed={35} minDelay={3000} maxDelay={7000} starColor={currentTheme.primaryColor} trailColor={currentTheme.secondaryColor} />
         
-        {/* Dynamic Theme Aurora Radiance Orbs */}
+        {/* Soft Ambient Radiance */}
         <div 
-          className="absolute -top-[25%] -left-[10%] w-[60vw] h-[60vw] rounded-full blur-[150px] animate-pulse-slow transition-all duration-700 opacity-20"
+          className="absolute -top-[15%] -left-[10%] w-[50vw] h-[50vw] rounded-full blur-[140px] opacity-15 pointer-events-none transition-all duration-700"
           style={{ backgroundColor: currentTheme.primaryColor }}
         />
         <div 
-          className="absolute top-[25%] -right-[15%] w-[55vw] h-[55vw] rounded-full blur-[160px] animate-pulse-slow transition-all duration-700 opacity-20" 
-          style={{ backgroundColor: currentTheme.secondaryColor, animationDelay: '3s' }} 
-        />
-        <div 
-          className="absolute bottom-[10%] left-[25%] w-[50vw] h-[50vw] rounded-full blur-[170px] animate-pulse-slow transition-all duration-700 opacity-15" 
-          style={{ backgroundColor: currentTheme.accentColor, animationDelay: '1.5s' }} 
+          className="absolute top-[30%] -right-[15%] w-[45vw] h-[45vw] rounded-full blur-[150px] opacity-15 pointer-events-none transition-all duration-700"
+          style={{ backgroundColor: currentTheme.secondaryColor }}
         />
       </div>
 
-      {/* Top Navbar */}
+      {/* Top Professional Navbar */}
       <Navbar
         onOpenAddModal={() => setIsAddOpen(true)}
         onOpenAdminModal={() => setIsAdminOpen(true)}
@@ -281,421 +277,282 @@ export const App: React.FC = () => {
       />
 
       {/* Main Studio Viewport */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 flex-1 w-full flex flex-col gap-10 relative z-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-8 flex-1 w-full flex flex-col gap-8 relative z-10">
         
-        {/* Aceternity Master Hero Studio Card */}
+        {/* Editorial Featured Hero Banner (Spotify / Apple Music Style) */}
         {activeTab === 'featured' && !searchQuery && (
-          <div className="relative rounded-3xl overflow-hidden p-6 sm:p-10 border border-white/10 shadow-[0_0_50px_rgba(139,92,246,0.15)] bg-gradient-to-br from-slate-950/90 via-[#0B0F19] to-slate-900/90 backdrop-blur-2xl">
-            {/* Subtle radial grid matrix overlay */}
-            <div className="absolute inset-0 bg-[radial-gradient(#8b5cf6_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
-            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-gradient-to-b from-cyan-500/20 via-purple-500/10 to-transparent blur-3xl pointer-events-none" />
+          <div className="relative rounded-3xl overflow-hidden p-6 sm:p-8 bg-gradient-to-r from-slate-950 via-[#0C101C] to-slate-900 border border-white/10 shadow-xl backdrop-blur-xl">
+            
+            {/* Subtle brand glow behind text */}
+            <div 
+              className="absolute -top-16 -left-16 w-80 h-80 rounded-full blur-3xl opacity-20 pointer-events-none"
+              style={{ backgroundColor: currentTheme.primaryColor }}
+            />
 
-            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               
-              <div className="max-w-2xl space-y-5">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-semibold backdrop-blur-md shadow-sm">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Ultra-HQ Music Streaming Engine Active • YouTube 320kbps</span>
+              <div className="max-w-xl space-y-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  <span className="text-cyan-300 font-mono tracking-wider uppercase">Studio Ultra-HD 320kbps</span>
+                  <span>·</span>
+                  <span>Curated by Subha</span>
                 </div>
 
-                <h1 className="font-heading text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
-                  Smart Subha <br />
-                  <span className="bg-gradient-to-r from-purple-400 via-cyan-300 to-indigo-300 bg-clip-text text-transparent">
-                    BEATS Audio Studio
-                  </span>
+                <h1 className="font-heading text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                  Smart Subha <span className="bg-gradient-to-r from-purple-400 via-cyan-300 to-indigo-300 bg-clip-text text-transparent">BEATS</span>
                 </h1>
 
-                <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl">
-                  {showAllTracks 
-                    ? `Showing all ${tracks.length} master tracks. Enjoy crystal-clear audio, live visualizer equalizer, and offline caching.`
-                    : `Showing ${displayedTracks.length} handpicked Featured Beats by Subha Master. Click "Explore All Songs" or search below to access the full collection.`
-                  }
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Stream high-fidelity YouTube audio, play in background with screen locked, and cache your favorite Bangla melodies offline.
                 </p>
 
-                {/* Interactive Action Controls with Dedicated Search Button */}
-                <div className="flex flex-wrap items-center gap-3 pt-2">
+                {/* Primary Action Buttons */}
+                <div className="flex flex-wrap items-center gap-2.5 pt-2">
                   <button
                     onClick={handlePlayAllInOrder}
-                    className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs shadow-xl shadow-purple-600/30 transition-transform active:scale-95 cursor-pointer"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-slate-950 font-bold text-xs hover:bg-slate-200 transition-all active:scale-95 shadow-md cursor-pointer"
                   >
                     <Play className="w-4 h-4 fill-current" />
-                    <span>Play All Beats</span>
+                    <span>Play All</span>
                   </button>
 
-                  <HoverBorderGradient
-                    containerClassName="rounded-2xl"
-                    as="button"
+                  <button
                     onClick={handleShufflePlayAll}
-                    className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-transform active:scale-95 cursor-pointer"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-white font-semibold text-xs border border-white/10 transition-all active:scale-95 cursor-pointer"
                   >
-                    <Shuffle className="w-4 h-4 text-purple-400" />
-                    <span>Shuffle Beats</span>
-                  </HoverBorderGradient>
+                    <Shuffle className="w-3.5 h-3.5 text-cyan-300" />
+                    <span>Shuffle</span>
+                  </button>
 
-                  {/* DEDICATED SEARCH BUTTON IN HERO */}
                   <button
                     onClick={focusCatalogSearch}
-                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-200 border border-cyan-500/40 font-bold text-xs transition-all hover:scale-105 active:scale-95 shadow-md shadow-cyan-500/10 cursor-pointer"
-                    title="Search songs, artists, and Bangla melodies"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-medium text-xs border border-white/10 transition-all cursor-pointer"
                   >
-                    <Search className="w-4 h-4 text-cyan-300" />
-                    <span>Search Library 🔍</span>
+                    <Search className="w-3.5 h-3.5" />
+                    <span>Search</span>
                   </button>
 
                   <button
-                    onClick={() => setShowAllTracks(!showAllTracks)}
-                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-purple-950/60 hover:bg-purple-900/60 text-purple-200 border border-purple-500/40 font-bold text-xs transition-all hover:scale-105 active:scale-95 shadow-md shadow-purple-950/40 cursor-pointer"
+                    onClick={() => setIsAdminOpen(true)}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-sm"
+                    title="Open Subha Beats Admin Panel"
                   >
-                    <Sparkles className="w-4 h-4 text-cyan-400" />
-                    <span>{showAllTracks ? "Show Featured Only" : `Explore All (${tracks.length} Songs)`}</span>
-                  </button>
-
-                  <button
-                    onClick={() => promptInstall()}
-                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-cyan-950/60 hover:from-emerald-900/60 hover:to-cyan-900/60 text-emerald-300 border border-emerald-500/40 font-bold text-xs transition-all hover:scale-105 active:scale-95 shadow-md shadow-emerald-500/10 cursor-pointer"
-                    title="Install APK on Mobile"
-                  >
-                    <Download className="w-4 h-4 text-emerald-400 animate-pulse" />
-                    <span>{isInstalled ? "App Ready ✓" : "Install APK"}</span>
+                    <Crown className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Admin Panel 👑</span>
                   </button>
                 </div>
               </div>
 
-              {/* Real-time spectrum visualizer widget */}
-              <div className="w-full lg:w-80 p-5 rounded-3xl bg-slate-950/80 border border-purple-500/30 shadow-2xl flex flex-col gap-3 backdrop-blur-xl">
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span className="font-mono flex items-center gap-1.5 text-cyan-300 font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                    Live Visualizer Wave
-                  </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-purple-900/60 text-purple-300 font-bold">
-                    320kbps Master
-                  </span>
-                </div>
-
-                <div className="h-16 flex items-center justify-center">
-                  <Visualizer barCount={24} height={52} className="w-full" />
-                </div>
-
-                {currentTrack && (
-                  <div className="pt-2 border-t border-white/5 flex items-center gap-2.5">
-                    <img 
-                      src={currentTrack.thumbnail} 
-                      alt="" 
-                      className="w-11 h-11 rounded-xl object-cover flex-shrink-0 border border-white/10 shadow-md"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-white truncate">{currentTrack.title}</p>
-                      <p className="text-[11px] text-slate-400 truncate">{currentTrack.artist}</p>
-                    </div>
+              {/* Right: Active Track Preview or Live Waveform */}
+              {currentTrack && (
+                <div 
+                  onClick={() => setIsFullPlayerOpen(true)}
+                  className="w-full md:w-auto p-3 rounded-2xl bg-slate-900/80 border border-white/10 flex items-center gap-3 backdrop-blur-md cursor-pointer hover:border-purple-500/40 transition-colors shadow-lg"
+                >
+                  <img 
+                    src={currentTrack.thumbnail} 
+                    alt="" 
+                    className="w-14 h-14 rounded-xl object-cover shadow"
+                  />
+                  <div className="min-w-0 pr-2">
+                    <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider block">
+                      Now In Player
+                    </span>
+                    <p className="text-xs font-bold text-white truncate max-w-[180px]">
+                      {currentTrack.title}
+                    </p>
+                    <p className="text-[11px] text-slate-400 truncate">
+                      {currentTrack.artist}
+                    </p>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
             </div>
           </div>
         )}
 
-        {/* Featured Curated Playlists Row with Dedicated Search Button */}
-        {activeTab === 'featured' && !searchQuery && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-heading text-xl font-bold text-white flex items-center gap-2">
-                  <Crown className="w-5 h-5 text-amber-400" />
-                  Official Curated Playlists
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Curated with verified YouTube Ultra-HD audio
-                </p>
-              </div>
-
-              {/* Dedicated Search button for Playlists */}
-              <button
-                onClick={focusCatalogSearch}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-cyan-400 text-xs text-slate-300 hover:text-white transition-all cursor-pointer"
-              >
-                <Search className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Search Songs</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {playlists.map((pl) => (
-                <div
-                  key={pl.id}
-                  onClick={() => {
-                    const plTracks = tracks.filter((t) => pl.trackIds.includes(t.id));
-                    if (plTracks.length > 0) playTrack(plTracks[0], plTracks);
-                  }}
-                  className="group relative rounded-2xl p-4 bg-slate-900/60 backdrop-blur-xl border border-white/10 hover:border-purple-500/50 hover:shadow-[0_0_25px_rgba(168,85,247,0.2)] transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between"
-                >
-                  <div className="flex items-center gap-3.5 mb-3">
-                    <img
-                      src={pl.coverImage || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400'}
-                      alt={pl.title}
-                      className="w-16 h-16 rounded-xl object-cover group-hover:scale-105 transition-transform duration-300 shadow-md flex-shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <h3 className="font-heading font-bold text-sm text-white group-hover:text-purple-300 transition-colors truncate">
-                          {pl.title}
-                        </h3>
-                        {pl.isOfficial && (
-                          <span className="p-0.5 rounded bg-amber-500/20 text-amber-300">
-                            <Crown className="w-3 h-3" />
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-400 line-clamp-2 mt-0.5">
-                        {pl.description}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                    <span className="text-[11px] text-cyan-400 font-mono font-medium">
-                      {pl.trackIds.length} HD Tracks
-                    </span>
-                    <button 
-                      className="w-8 h-8 rounded-full bg-purple-600/30 group-hover:bg-purple-600 text-purple-300 group-hover:text-white flex items-center justify-center transition-all shadow-md group-hover:scale-110"
-                      title="Play Playlist"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* SONG CATALOG SECTION: DEDICATED SEARCH, A-Z / Z-A SORTING, & VIEW CONTROLS */}
+        {/* SONG CATALOG SECTION */}
         <section className="space-y-4">
           
-          {/* Main Controls Card */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-slate-900/70 border border-white/10 backdrop-blur-2xl shadow-xl space-y-4">
-            
-            {/* Row 1: Section Title & Results Count */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-heading text-xl font-bold text-white flex items-center gap-2">
-                    <Star className="w-5 h-5 text-amber-400 fill-amber-400/20" />
-                    {activeTab === 'featured' 
-                      ? (showAllTracks ? `All Library Songs (${tracks.length})` : `Featured Beats (${displayedTracks.length})`)
-                      : activeTab === 'all'
-                      ? `All Library Songs (${tracks.length})`
-                      : activeTab === 'bengali'
-                      ? `বাংলা Melodies (${displayedTracks.length})`
-                      : activeTab === 'lofi'
-                      ? `Lofi & Chill (${displayedTracks.length})`
-                      : activeTab === 'trending'
-                      ? `Trending Hits (${displayedTracks.length})`
-                      : activeTab === 'curated'
-                      ? `Subha's Picks (${displayedTracks.length})`
-                      : activeTab === 'favorites'
-                      ? `Your Favorite Songs (${displayedTracks.length})`
-                      : `Offline Synced Songs (${displayedTracks.length})`
-                    }
-                  </h2>
+          {/* Main Catalog Header Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/5">
+            <div>
+              <h2 className="font-heading text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                {activeTab === 'featured' 
+                  ? (showAllTracks ? `All Library Songs (${tracks.length})` : `Featured Songs (${displayedTracks.length})`)
+                  : activeTab === 'all'
+                  ? `All Library Songs (${tracks.length})`
+                  : activeTab === 'bengali'
+                  ? `বাংলা Melodies (${displayedTracks.length})`
+                  : activeTab === 'lofi'
+                  ? `Lofi & Chill (${displayedTracks.length})`
+                  : activeTab === 'trending'
+                  ? `Trending Hits (${displayedTracks.length})`
+                  : activeTab === 'curated'
+                  ? `Subha's Picks (${displayedTracks.length})`
+                  : activeTab === 'favorites'
+                  ? `Your Favorite Songs (${displayedTracks.length})`
+                  : `Offline Synced Songs (${displayedTracks.length})`
+                }
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Showing {displayedTracks.length} of {tracks.length} tracks
+              </p>
+            </div>
 
-                  {activeTab === 'featured' && !showAllTracks && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-bold">
-                      Homepage Curated
-                    </span>
-                  )}
-                </div>
+            {/* Controls: Sort Dropdown & View Mode Switcher */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {activeTab === 'featured' && (
+                <button
+                  onClick={() => setShowAllTracks(!showAllTracks)}
+                  className="px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold border border-white/10 transition-colors cursor-pointer"
+                >
+                  {showAllTracks ? "Show Featured" : `See All (${tracks.length})`}
+                </button>
+              )}
 
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Showing {displayedTracks.length} of {tracks.length} songs ready for background audio playback.
-                </p>
+              {/* Sort Selector Dropdown */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
+                <ArrowUpDown className="w-3.5 h-3.5 text-cyan-400" />
+                <select
+                  value={sortBy}
+                  onChange={(e: any) => setSortBy(e.target.value)}
+                  className="bg-transparent text-xs text-cyan-300 font-semibold outline-none cursor-pointer"
+                >
+                  <option value="featured" className="bg-slate-900 text-slate-200">Featured Picks</option>
+                  <option value="az" className="bg-slate-900 text-slate-200">Title: A → Z</option>
+                  <option value="za" className="bg-slate-900 text-slate-200">Title: Z → A</option>
+                  <option value="artist-az" className="bg-slate-900 text-slate-200">Artist: A → Z</option>
+                  <option value="artist-za" className="bg-slate-900 text-slate-200">Artist: Z → A</option>
+                  <option value="newest" className="bg-slate-900 text-slate-200">Recently Added</option>
+                  <option value="duration-desc" className="bg-slate-900 text-slate-200">Duration: Longest</option>
+                  <option value="duration-asc" className="bg-slate-900 text-slate-200">Duration: Shortest</option>
+                </select>
               </div>
 
-              {/* View Switcher & Action Controls */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {activeTab === 'featured' && (
-                  <button
-                    onClick={() => setShowAllTracks(!showAllTracks)}
-                    className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 transition-all active:scale-95 cursor-pointer"
-                  >
-                    {showAllTracks ? "Show Featured Only" : `See All Songs (${tracks.length})`}
-                  </button>
-                )}
-
+              {/* Grid / List View Toggle */}
+              <div className="flex items-center p-0.5 rounded-full bg-white/5 border border-white/10">
                 <button
-                  onClick={handleShufflePlayAll}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-600/25 border border-purple-500/40 text-purple-300 hover:bg-purple-600 hover:text-white text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+                  onClick={() => setViewMode('grid')}
+                  className={`p-1.5 rounded-full transition-colors cursor-pointer ${
+                    viewMode === 'grid' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Grid View"
                 >
-                  <Shuffle className="w-3.5 h-3.5" />
-                  <span>Shuffle</span>
+                  <LayoutGrid className="w-3.5 h-3.5" />
                 </button>
-
-                <div className="flex items-center p-1 rounded-xl bg-slate-950 border border-slate-800">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                      viewMode === 'grid' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-                    }`}
-                    title="3D Card Grid View"
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                      viewMode === 'list' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-                    }`}
-                    title="Studio Compact List View"
-                  >
-                    <List className="w-4 h-4" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-1.5 rounded-full transition-colors cursor-pointer ${
+                    viewMode === 'list' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="List View"
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
-
-            {/* Row 2: DEDICATED SEARCH BAR & SORT BY SELECTOR */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-2 border-t border-white/5">
-              
-              {/* Dedicated Search Input & Search Button */}
-              <div className="md:col-span-7 flex items-center gap-2">
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    ref={catalogSearchRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search songs, artists (Arijit, Jeet Gannguli, Atif...), Bangla melodies..."
-                    className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-slate-950 border border-slate-800 focus:border-cyan-500 text-xs text-white placeholder-slate-500 outline-none shadow-inner"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => catalogSearchRef.current?.focus()}
-                  className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white text-xs font-bold shadow-md shadow-purple-600/20 transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer"
-                >
-                  <Search className="w-3.5 h-3.5" />
-                  <span>Search</span>
-                </button>
-              </div>
-
-              {/* SORT OPTIONS: A-Z, Z-A, ARTIST A-Z, ETC (GAN SHOW KORARA OPTION) */}
-              <div className="md:col-span-5 flex items-center gap-2">
-                <div className="flex items-center gap-2 flex-1 px-3 py-1.5 rounded-2xl bg-slate-950 border border-slate-800">
-                  <ArrowUpDown className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                  <span className="text-[11px] font-semibold text-slate-400 whitespace-nowrap">Sort:</span>
-                  <select
-                    value={sortBy}
-                    onChange={(e: any) => setSortBy(e.target.value)}
-                    className="w-full bg-transparent text-xs text-cyan-300 font-semibold outline-none cursor-pointer"
-                  >
-                    <option value="featured" className="bg-slate-900 text-slate-200">⭐ Featured / Top Picks</option>
-                    <option value="az" className="bg-slate-900 text-slate-200">🔤 Song Title: A → Z</option>
-                    <option value="za" className="bg-slate-900 text-slate-200">🔤 Song Title: Z → A</option>
-                    <option value="artist-az" className="bg-slate-900 text-slate-200">🎤 Artist Name: A → Z</option>
-                    <option value="artist-za" className="bg-slate-900 text-slate-200">🎤 Artist Name: Z → A</option>
-                    <option value="newest" className="bg-slate-900 text-slate-200">⏱️ Recently Added</option>
-                    <option value="duration-desc" className="bg-slate-900 text-slate-200">⏳ Duration: Longest First</option>
-                    <option value="duration-asc" className="bg-slate-900 text-slate-200">⚡ Duration: Shortest First</option>
-                  </select>
-                </div>
-
-                {/* Quick A-Z / Z-A Fast Toggle Buttons */}
-                <button
-                  onClick={() => setSortBy(sortBy === 'az' ? 'za' : 'az')}
-                  className={`px-3 py-2.5 rounded-2xl text-xs font-bold border transition-colors flex items-center gap-1 cursor-pointer flex-shrink-0 ${
-                    sortBy === 'az' || sortBy === 'za'
-                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-sm'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                  title="Toggle Song Name A-Z or Z-A"
-                >
-                  <span>{sortBy === 'za' ? 'Z→A' : 'A→Z'}</span>
-                </button>
-              </div>
-
-            </div>
-
-            {/* Quick Filter Categories Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
-              {[
-                { id: 'all', label: 'All Categories' },
-                { id: 'bengali', label: 'বাংলা (Bengali)' },
-                { id: 'lofi', label: 'Lofi Chill' },
-                { id: 'edm', label: 'EDM & Bass' },
-                { id: 'trending', label: 'Trending Hits' },
-                { id: 'pop', label: 'Pop' },
-              ].map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-3 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                    selectedCategory === cat.id
-                      ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm'
-                      : 'bg-slate-950/70 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800'
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Quick Artist Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1 pl-1 pr-1 flex-shrink-0">
-                <Filter className="w-3 h-3 text-cyan-400" /> Artist:
-              </span>
-              {topArtists.map((artist) => (
-                <button
-                  key={artist}
-                  onClick={() => setSelectedArtist(artist)}
-                  className={`px-3 py-1 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
-                    selectedArtist === artist
-                      ? 'bg-cyan-500/20 border border-cyan-400 text-cyan-300 shadow-sm font-bold'
-                      : 'bg-slate-950/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800'
-                  }`}
-                >
-                  {artist}
-                </button>
-              ))}
-            </div>
-
-            {/* Alphabetical Quick Jump Bar (A-Z) */}
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1 px-1.5 bg-slate-950/60 rounded-2xl border border-white/5">
-              <span className="text-[10px] font-mono text-slate-500 pl-2 pr-1 flex-shrink-0">Alphabet A-Z:</span>
-              {alphabetList.map((char) => (
-                <button
-                  key={char}
-                  onClick={() => setSelectedLetter(char)}
-                  className={`min-w-[26px] h-6 px-1 rounded-lg text-[11px] font-mono font-semibold transition-all cursor-pointer ${
-                    selectedLetter === char
-                      ? 'bg-gradient-to-r from-purple-600 to-cyan-500 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  {char}
-                </button>
-              ))}
-            </div>
-
           </div>
 
-          {/* Tracks Display: Grid or Compact List */}
+          {/* Dedicated Search Input for Catalog */}
+          <div className="relative w-full flex items-center">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              ref={catalogSearchRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search songs, artists (Arijit, Jeet Gannguli, Atif...), Bangla melodies..."
+              className="w-full pl-10 pr-24 py-2 rounded-xl bg-slate-900/60 border border-white/10 focus:border-cyan-400 text-xs text-white placeholder-slate-400 outline-none transition-all"
+            />
+            {searchQuery ? (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <button
+                onClick={() => catalogSearchRef.current?.focus()}
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-[10px] font-bold text-slate-300 transition-colors cursor-pointer"
+              >
+                Search
+              </button>
+            )}
+          </div>
+
+          {/* Category Filter Pills (Horizontal scroll) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+            {[
+              { id: 'all', label: 'All' },
+              { id: 'bengali', label: 'বাংলা (Bengali)' },
+              { id: 'lofi', label: 'Lofi Chill' },
+              { id: 'edm', label: 'EDM & Bass' },
+              { id: 'trending', label: 'Trending Hits' },
+              { id: 'pop', label: 'Pop' },
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                  selectedCategory === cat.id
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Artist Filter Pills (Horizontal scroll) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <span className="text-[11px] font-semibold text-slate-500 pl-1 pr-1 flex-shrink-0">
+              Artist:
+            </span>
+            {topArtists.map((artist) => (
+              <button
+                key={artist}
+                onClick={() => setSelectedArtist(artist)}
+                className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                  selectedArtist === artist
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 font-bold'
+                    : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {artist}
+              </button>
+            ))}
+          </div>
+
+          {/* Alphabetical Quick Jump Bar (A-Z) */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1 px-1 bg-white/[0.02] rounded-xl border border-white/5">
+            <span className="text-[10px] font-mono text-slate-500 pl-2 pr-1 flex-shrink-0">A-Z:</span>
+            {alphabetList.map((char) => (
+              <button
+                key={char}
+                onClick={() => setSelectedLetter(char)}
+                className={`min-w-[24px] h-6 px-1 rounded-md text-[11px] font-mono font-semibold transition-colors cursor-pointer ${
+                  selectedLetter === char
+                    ? 'bg-white text-slate-950 font-bold shadow'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {char}
+              </button>
+            ))}
+          </div>
+
+          {/* Songs Grid or List Display */}
           {displayedTracks.length === 0 ? (
-            <div className="p-12 text-center rounded-3xl bg-slate-900/40 backdrop-blur-xl border border-white/5 space-y-4">
-              <Headphones className="w-12 h-12 text-slate-600 mx-auto animate-bounce" />
-              <h3 className="text-base font-bold text-slate-300 font-heading">No songs match your search or filters</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Try resetting artist/letter filters, clearing your search query, or clicking See All Songs.
+            <div className="py-16 text-center space-y-3 rounded-2xl bg-white/[0.02] border border-white/5">
+              <Music className="w-10 h-10 text-slate-600 mx-auto" />
+              <h3 className="text-base font-bold text-white">No tracks found</h3>
+              <p className="text-xs text-slate-400">
+                No songs match your search or filter criteria.
               </p>
               <button
                 onClick={() => {
@@ -706,39 +563,26 @@ export const App: React.FC = () => {
                   setShowAllTracks(true);
                   setSortBy('featured');
                 }}
-                className="mt-2 px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all cursor-pointer shadow-md"
+                className="mt-2 px-4 py-2 rounded-full bg-white text-slate-950 text-xs font-bold transition-all cursor-pointer shadow-md"
               >
-                Reset All Filters & View All Songs
+                Reset Filters
               </button>
             </div>
           ) : viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            /* 2 columns on mobile, 3 on tablet, 4 on small desktop, 5 on lg, 6 on xl */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3.5">
               {displayedTracks.map((track, idx) => (
                 <TrackCard key={`${track.id}-${idx}`} track={track} index={idx} />
               ))}
             </div>
           ) : (
-            <div className="space-y-1.5 rounded-2xl bg-slate-900/40 backdrop-blur-xl p-3 border border-white/5">
+            <div className="divide-y divide-white/5 rounded-2xl bg-white/[0.02] border border-white/5 p-1 sm:p-2">
               {displayedTracks.map((track, idx) => (
                 <TrackListItem key={`${track.id}-${idx}`} track={track} index={idx} />
               ))}
             </div>
           )}
 
-          {/* See All Banner at Bottom if in Featured view */}
-          {activeTab === 'featured' && !showAllTracks && displayedTracks.length > 0 && (
-            <div className="p-6 rounded-3xl bg-gradient-to-r from-purple-950/40 via-slate-900/80 to-cyan-950/40 border border-purple-500/20 text-center space-y-3 mt-4 backdrop-blur-xl">
-              <p className="text-sm text-slate-300">
-                Want to listen to more songs? You have <strong>{tracks.length - displayedTracks.length} more tracks</strong> in the library!
-              </p>
-              <button
-                onClick={() => setShowAllTracks(true)}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-              >
-                See All {tracks.length} Songs Now
-              </button>
-            </div>
-          )}
         </section>
 
       </main>
@@ -747,14 +591,14 @@ export const App: React.FC = () => {
       {showBackToTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-24 right-6 z-40 p-3 rounded-full bg-purple-600 text-white shadow-lg shadow-purple-600/40 hover:bg-purple-500 transition-all hover:scale-110 active:scale-95 cursor-pointer"
+          className="fixed bottom-24 right-5 z-40 p-2.5 rounded-full bg-purple-600 text-white shadow-lg hover:bg-purple-500 transition-all cursor-pointer"
           title="Back to Top"
         >
-          <ArrowUp className="w-5 h-5" />
+          <ArrowUp className="w-4 h-4" />
         </button>
       )}
 
-      {/* Floating Bottom Dock Music Player */}
+      {/* Floating Mini Player (Desktop & Mobile) */}
       <MusicPlayer onOpenFullPlayer={() => setIsFullPlayerOpen(true)} />
 
       {/* Full-Screen Studio Player Modal */}
@@ -781,6 +625,12 @@ export const App: React.FC = () => {
         onClose={() => setIsOfflineOpen(false)}
       />
 
+      {/* Bengali Explanation Modal */}
+      <BengaliExplanationModal
+        isOpen={isBengaliOpen}
+        onClose={() => setIsBengaliOpen(false)}
+      />
+
       {/* PWA App Installation Modal */}
       <InstallAppModal />
 
@@ -799,31 +649,26 @@ export const App: React.FC = () => {
       {/* Mobile-Only Bottom Navigation Dock */}
       <nav 
         aria-label="Mobile Navigation"
-        className="md:hidden fixed bottom-2 inset-x-3 z-40 bg-[#07090E]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-1.5 shadow-2xl flex items-center justify-around"
+        className="md:hidden fixed bottom-1.5 inset-x-2.5 z-40 bg-[#0A0D17]/95 backdrop-blur-2xl border border-white/10 rounded-2xl py-1 px-2 shadow-2xl flex items-center justify-around"
       >
         <button
           onClick={() => { setActiveTab('featured'); setShowAllTracks(false); }}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-colors cursor-pointer ${
             activeTab === 'featured'
               ? 'text-white font-bold'
               : 'text-slate-400 hover:text-slate-200'
           }`}
-          style={{
-            backgroundColor: activeTab === 'featured' ? `${currentTheme.primaryColor}25` : 'transparent',
-            color: activeTab === 'featured' ? currentTheme.primaryColor : undefined,
-          }}
         >
-          <Sparkles className="w-4 h-4" />
-          <span className="text-[10px]">Featured</span>
+          <Home className="w-4 h-4 text-purple-400" />
+          <span className="text-[10px]">Home</span>
         </button>
 
-        {/* Dedicated Search button in Mobile Dock */}
         <button
           onClick={() => {
             setShowAllTracks(true);
             focusCatalogSearch();
           }}
-          className="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all text-slate-400 hover:text-cyan-300 cursor-pointer"
+          className="flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-colors text-slate-400 hover:text-cyan-300 cursor-pointer"
         >
           <Search className="w-4 h-4 text-cyan-400" />
           <span className="text-[10px]">Search</span>
@@ -831,62 +676,45 @@ export const App: React.FC = () => {
 
         <button
           onClick={() => { setActiveTab('bengali'); setShowAllTracks(true); }}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-colors cursor-pointer ${
             activeTab === 'bengali'
               ? 'text-white font-bold'
               : 'text-slate-400 hover:text-slate-200'
           }`}
-          style={{
-            backgroundColor: activeTab === 'bengali' ? `${currentTheme.primaryColor}25` : 'transparent',
-            color: activeTab === 'bengali' ? currentTheme.primaryColor : undefined,
-          }}
         >
-          <Music className="w-4 h-4" />
+          <Music className="w-4 h-4 text-emerald-400" />
           <span className="text-[10px]">বাংলা</span>
         </button>
 
         <button
           onClick={() => { setActiveTab('favorites'); setShowAllTracks(true); }}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-colors cursor-pointer ${
             activeTab === 'favorites'
               ? 'text-white font-bold'
               : 'text-slate-400 hover:text-slate-200'
           }`}
-          style={{
-            backgroundColor: activeTab === 'favorites' ? `${currentTheme.primaryColor}25` : 'transparent',
-            color: activeTab === 'favorites' ? currentTheme.primaryColor : undefined,
-          }}
         >
-          <Star className="w-4 h-4" />
-          <span className="text-[10px]">Favorites</span>
+          <Star className="w-4 h-4 text-amber-400" />
+          <span className="text-[10px]">Liked</span>
         </button>
 
-        {/* Dedicated Admin Portal button in Mobile Dock (Secret Code Protected) */}
+        {/* Downloaded / Saved Songs Button in Mobile Dock */}
         <button
-          onClick={() => setIsAdminOpen(true)}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
-            isAdmin ? 'text-amber-400 font-bold' : 'text-slate-400 hover:text-amber-300'
+          onClick={() => { setActiveTab('offline'); setShowAllTracks(true); }}
+          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl transition-colors cursor-pointer ${
+            activeTab === 'offline' ? 'text-cyan-300 font-bold bg-cyan-500/20' : 'text-slate-400 hover:text-cyan-300'
           }`}
+          title="Downloaded & Saved Songs"
         >
-          <Crown className={`w-4 h-4 ${isAdmin ? 'text-amber-400' : 'text-slate-400'}`} />
-          <span className="text-[10px]">{isAdmin ? 'Admin' : 'Passcode'}</span>
-        </button>
-
-        <button
-          onClick={() => setIsThemeOpen(true)}
-          className="flex flex-col items-center gap-1 py-1 px-2 rounded-xl transition-all text-slate-400 hover:text-white cursor-pointer"
-        >
-          <span 
-            className="w-3.5 h-3.5 rounded-full border border-white/30 shadow-sm"
-            style={{ backgroundColor: currentTheme.primaryColor }}
-          />
-          <span className="text-[10px]">Theme</span>
+          <DownloadCloud className="w-4 h-4 text-cyan-400" />
+          <span className="text-[10px] font-bold">Saved</span>
         </button>
       </nav>
 
       {/* Footer */}
       <Footer 
         onOpenRealtimeSyncModal={() => setIsRealtimeSyncOpen(true)}
+        onOpenAdminModal={() => setIsAdminOpen(true)}
       />
 
     </div>

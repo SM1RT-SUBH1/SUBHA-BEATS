@@ -11,7 +11,9 @@ import {
   ExternalLink, 
   Music, 
   Check, 
-  Sparkles 
+  Sparkles,
+  DownloadCloud,
+  CheckCircle2 
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Track } from '../types';
@@ -49,7 +51,10 @@ export const YTMusicExplorer: React.FC = () => {
     togglePlayPause, 
     addCustomTrack, 
     addTrackToYtPlaylist,
-    ytSavedTracks 
+    ytSavedTracks,
+    downloadYtTrack,
+    removeDownloadedYtTrack,
+    isYtTrackDownloaded
   } = useMusic();
   const { currentTheme } = useTheme();
 
@@ -218,6 +223,33 @@ export const YTMusicExplorer: React.FC = () => {
       origin: { y: 0.8 },
       colors: ['#ef4444', '#8b5cf6', '#06b6d4'],
     });
+  };
+
+  const handleDownloadYt = async (item: YTResultItem) => {
+    const trackObj: Track = {
+      id: item.id,
+      title: item.title,
+      artist: item.artist,
+      thumbnail: item.thumbnail || `https://i.ytimg.com/vi/${item.id}/hqdefault.jpg`,
+      duration: item.duration || 210,
+      durationFormatted: item.durationFormatted || '3:30',
+      category: 'youtube-stream',
+      isOfflineCached: true,
+      isFeatured: false,
+      isCurated: false,
+      addedAt: Date.now(),
+    };
+    if (isYtTrackDownloaded(item.id)) {
+      await removeDownloadedYtTrack(item.id);
+    } else {
+      await downloadYtTrack(trackObj);
+      confetti({
+        particleCount: 30,
+        spread: 60,
+        origin: { y: 0.8 },
+        colors: ['#10b981', '#06b6d4']
+      });
+    }
   };
 
   return (
@@ -439,19 +471,31 @@ export const YTMusicExplorer: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Quick Action: Add to YouTube Saved Playlist */}
+                  {/* Quick Action: Add to YouTube Saved Playlist & Download Offline */}
                   <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => handleDownloadYt(item)}
+                      className={`p-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        isYtTrackDownloaded(item.id)
+                          ? 'text-emerald-400 bg-emerald-500/10'
+                          : 'text-slate-400 hover:text-white hover:bg-white/10'
+                      }`}
+                      title={isYtTrackDownloaded(item.id) ? "Downloaded for Offline (Tap to remove)" : "Download for Offline Playback"}
+                    >
+                      {isYtTrackDownloaded(item.id) ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <DownloadCloud className="w-4 h-4" />}
+                    </button>
+
                     <button
                       onClick={() => handleAddToYtPlaylist(item)}
                       disabled={isSaved}
                       className={`p-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                         isSaved
-                          ? 'text-emerald-400 bg-emerald-500/10'
+                          ? 'text-cyan-400 bg-cyan-500/10'
                           : 'text-slate-400 hover:text-white hover:bg-white/10'
                       }`}
                       title={isSaved ? "Saved to YouTube Playlist" : "Add to YouTube Playlist"}
                     >
-                      {isSaved ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      {isSaved ? <Check className="w-4 h-4 text-cyan-400" /> : <Plus className="w-4 h-4" />}
                     </button>
 
                     <a

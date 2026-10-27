@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ChevronDown, 
   Play, 
@@ -22,7 +22,8 @@ import {
   Layers,
   Radio,
   Flame,
-  Check
+  Check,
+  Music
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useMusic } from '../context/MusicContext';
@@ -65,75 +66,134 @@ export const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ isOpen, onClos
 
   const { currentTheme } = useTheme();
 
-  const [activeView, setActiveView] = useState<'player' | 'queue' | 'visualizer' | 'equalizer'>('player');
+  const [activeView, setActiveView] = useState<'player' | 'lyrics' | 'queue' | 'visualizer' | 'equalizer'>('player');
   const [artDisplayMode, setArtDisplayMode] = useState<'card' | 'vinyl'>('vinyl');
-  const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null);
+  const [sleepTimerSecondsRemaining, setSleepTimerSecondsRemaining] = useState<number | null>(null);
   const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
 
-  // Close on Escape key
+  // Live Lyrics State (LRCLIB Integration)
+  const [lyricsLines, setLyricsLines] = useState<Array<{ time: number; text: string }> | null>(null);
+  const [plainLyrics, setPlainLyrics] = useState<string | null>(null);
+  const [isLyricsLoading, setIsLyricsLoading] = useState(false);
+  const [currentLyricIndex, setCurrentLyricIndex] = useState<number>(-1);
+  const lyricsContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Fetch real synchronized lyrics for the active track
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
+    if (!currentTrack) return;
+    setIsLyricsLoading(true);
+    setLyricsLines(null);
+    setPlainLyrics(null);
+
+    const cleanTitle = currentTrack.title
+      .replace(/\s*[\(\[](?:Official|Music|Video|Audio|HD|4K|Full Song|Lyric|From "[^"]*").*?[\)\]]/gi, '')
+      .replace(/\|.*$/g, '')
+      .replace(/ft\..*$/i, '')
+      .trim();
+    const cleanArtist = currentTrack.artist.split(/[,;&|]/)[0].trim();
+
+    fetch(`https://lrclib.net/api/get?artist_name=${encodeURIComponent(cleanArtist)}&track_name=${encodeURIComponent(cleanTitle)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Not found');
+        return res.json();
+      })
+      .then((data) => {
+        if (data.syncedLyrics) {
+          const parsed = data.syncedLyrics
+            .split('\n')
+            .map((line: string) => {
+              const m = line.match(/\[(\d{2}):(\d{2}(?:\.\d+)?)\](.*)/);
+              if (!m) return null;
+              const time = parseFloat(m[1]) * 60 + parseFloat(m[2]);
+              const text = m[3].trim();
+              return { time, text };
+            })
+            .filter(Boolean) as Array<{ time: number; text: string }>;
+          setLyricsLines(parsed);
+        } else if (data.plainLyrics) {
+          setPlainLyrics(data.plainLyrics);
+        }
+      })
+      .catch(() => {
+        // Fallback search
+        fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(cleanTitle + ' ' + cleanArtist)}`)
+          .then((res) => res.json())
+          .then((items) => {
+            if (Array.isArray(items) && items.length > 0) {
+              const best = items[0];
+              if (best.syncedLyrics) {
+                const parsed = best.syncedLyrics
+                  .split('\n')
+                  .map((line: string) => {
+                    const m = line.match(/\[(\d{2}):(\d{2}(?:\.\d+)?)\](.*)/);
+                    if (!m) return null;
+                    const time = parseFloat(m[1]) * 60 + parseFloat(m[2]);
+                    const text = m[3].trim();
+                    return { time, text };
+                  })
+                  .filter(Boolean) as Array<{ time: number; text: string }>;
+                setLyricsLines(parsed);
+              } else if (best.plainLyrics) {
+                setPlainLyrics(best.plainLyrics);
+              }
+            }
+          })
+          .catch(() => {});
+      })
+      .finally(() => setIsLyricsLoading(false));
+  }, [currentTrack?.id]);
+
+  // Sync active lyrics line
+  useEffect(() => {
+    if (!lyricsLines || lyricsLines.length === 0) return;
+    let idx = -1;
+    for (let i = lyricsLines.length - 1; i >= 0; i--) {
+      if (currentTime >= lyricsLines[i].time - 0.2) {
+        idx = i;
+        break;
       }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+    }
+    setCurrentLyricIndex(idx);
+    
+    // Auto-scroll active lyrics line to view
+    if (idx !== -1 && lyricsContainerRef.current) {
+      const activeEl = lyricsContainerRef.current.children[idx] as HTMLElement;
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [currentTime, lyricsLines]);
 
-  if (!isOpen || !currentTrack) return null;
-
-  const formatTime = (secs: number) => {
-    if (isNaN(secs) || secs < 0) return '0:00';
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const isFav = favoriteTrackIds.includes(currentTrack.id);
-  const progress = downloadProgress[currentTrack.id];
-  const isDownloading = typeof progress === 'number' && progress < 100;
-
-  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.target.value);
-    seekTo((val / 100) * duration);
-  };
-
-  const handleHeartClick = () => {
-    toggleFavorite(currentTrack.id);
-    if (!isFav) {
-      confetti({
-        particleCount: 40,
-        spread: 60,
-        origin: { y: 0.7 },
-        colors: ['#f43f5e', '#ec4899', '#a855f7', '#38bdf8']
+  // Live sleep timer countdown updating every second
+  useEffect(() => {
+    if (sleepTimerSecondsRemaining === null) return;
+    if (sleepTimerSecondsRemaining <= 0) {
+      if (isPlaying) togglePlayPause();
+      setSleepTimerSecondsRemaining(null);
+      return;
+    }
+    const interval = setInterval(() => {
+      setSleepTimerSecondsRemaining((prev) => {
+        if (prev === null || prev <= 1) {
+          if (isPlaying) togglePlayPause();
+          return null;
+        }
+        return prev - 1;
       });
-    }
-  };
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: currentTrack.title,
-        text: `🎵 Listening to "${currentTrack.title}" by ${currentTrack.artist} on Smart Subha Beats!`,
-        url: window.location.href,
-      }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      setShowShareToast(true);
-      setTimeout(() => setShowShareToast(false), 2200);
-    }
-  };
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [sleepTimerSecondsRemaining, isPlaying]);
 
   const handleSetSleepTimer = (mins: number) => {
-    setSleepTimerMinutes(mins);
+    setSleepTimerSecondsRemaining(mins * 60);
     setShowSleepTimerModal(false);
-    setTimeout(() => {
-      if (isPlaying) togglePlayPause();
-      setSleepTimerMinutes(null);
-    }, mins * 60 * 1000);
+  };
+
+  const formatTimerWithSeconds = (totalSecs: number) => {
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${mins}m ${secs < 10 ? '0' : ''}${secs}s`;
   };
 
   const presets = [
@@ -144,6 +204,59 @@ export const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ isOpen, onClos
     { name: 'Rock', icon: '🥁', desc: 'Dynamic mids & treble' },
     { name: 'Flat', icon: '✨', desc: 'Pure studio reference' },
   ];
+
+  if (!isOpen || !currentTrack) return null;
+
+  const isFav = favoriteTrackIds.includes(currentTrack.id);
+  const isDownloading = downloadProgress[currentTrack.id] !== undefined;
+  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  const formatTime = (seconds: number) => {
+    if (isNaN(seconds) || seconds < 0) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPercent = parseFloat(e.target.value);
+    const newTime = (newPercent / 100) * duration;
+    seekTo(newTime);
+  };
+
+  const handleHeartClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentTrack) return;
+    const nextFav = !isFav;
+    toggleFavorite(currentTrack.id);
+    if (nextFav) {
+      confetti({
+        particleCount: 40,
+        spread: 60,
+        origin: { y: 0.7 },
+        colors: ['#f43f5e', '#ec4899', '#a855f7']
+      });
+    }
+  };
+
+  const handleShare = async () => {
+    if (!currentTrack) return;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: currentTrack.title,
+          text: `Listening to ${currentTrack.title} by ${currentTrack.artist} on Smart Subha Beats!`,
+          url: window.location.href,
+        });
+      } else {
+        await navigator.clipboard.writeText(`${currentTrack.title} by ${currentTrack.artist} - ${window.location.href}`);
+        setShowShareToast(true);
+        setTimeout(() => setShowShareToast(false), 2500);
+      }
+    } catch {
+      // ignore cancel
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#05070D] text-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -191,8 +304,19 @@ export const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ isOpen, onClos
           </span>
         </div>
 
-        {/* Art Display Toggle (Vinyl Record vs Glossy 3D Card) */}
-        <div className="flex items-center gap-1.5">
+        {/* Art Display Toggle & Live Timer */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {sleepTimerSecondsRemaining !== null && (
+            <button
+              onClick={() => setShowSleepTimerModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold cursor-pointer hover:bg-amber-500/30 transition-colors"
+              title="Click to manage sleep timer"
+            >
+              <Moon className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+              <span>{formatTimerWithSeconds(sleepTimerSecondsRemaining)}</span>
+            </button>
+          )}
+
           <button
             onClick={() => setArtDisplayMode(artDisplayMode === 'vinyl' ? 'card' : 'vinyl')}
             className={`p-2 sm:p-2.5 rounded-2xl transition-all border cursor-pointer ${
@@ -207,14 +331,15 @@ export const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ isOpen, onClos
         </div>
       </header>
 
-      {/* View Switcher Tabs (Player / Equalizer / Visualizer / Queue) */}
-      <div className="relative z-10 px-4 pt-2 pb-1 max-w-lg mx-auto w-full">
-        <div className="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-900/80 border border-white/10 backdrop-blur-xl">
+      {/* View Switcher Tabs (Player / Lyrics / Queue / Equalizer / Visualizer) */}
+      <div className="relative z-10 px-3 pt-2 pb-1 max-w-lg mx-auto w-full">
+        <div className="grid grid-cols-5 gap-1 p-1 rounded-2xl bg-slate-900/80 border border-white/10 backdrop-blur-xl">
           {[
             { id: 'player', label: 'Player', icon: Play },
-            { id: 'equalizer', label: 'Equalizer', icon: Sliders },
-            { id: 'visualizer', label: 'Visualizer', icon: Sparkles },
+            { id: 'lyrics', label: 'Lyrics', icon: Music },
             { id: 'queue', label: `Queue (${queue.length})`, icon: ListMusic },
+            { id: 'equalizer', label: 'EQ', icon: Sliders },
+            { id: 'visualizer', label: 'Visuals', icon: Sparkles },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeView === tab.id;
@@ -222,7 +347,7 @@ export const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ isOpen, onClos
               <button
                 key={tab.id}
                 onClick={() => setActiveView(tab.id as any)}
-                className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1 py-1.5 px-1 sm:px-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all cursor-pointer ${
                   isActive
                     ? 'text-white shadow-lg'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
@@ -235,7 +360,7 @@ export const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ isOpen, onClos
                 }}
               >
                 <Icon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="truncate">{tab.label}</span>
               </button>
             );
           })}
@@ -521,13 +646,13 @@ export const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ isOpen, onClos
                 <button
                   onClick={() => setShowSleepTimerModal(true)}
                   className={`p-2.5 rounded-2xl border flex items-center justify-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-sm ${
-                    sleepTimerMinutes !== null
-                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                    sleepTimerSecondsRemaining !== null
+                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 font-mono'
                       : 'bg-slate-900/70 hover:bg-slate-800/80 border-white/5 text-slate-300 hover:text-white'
                   }`}
                 >
                   <Moon className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{sleepTimerMinutes !== null ? `${sleepTimerMinutes}m` : 'Sleep'}</span>
+                  <span>{sleepTimerSecondsRemaining !== null ? formatTimerWithSeconds(sleepTimerSecondsRemaining) : 'Sleep'}</span>
                 </button>
 
                 {/* Volume Quick Mute / Unmute */}
@@ -547,6 +672,69 @@ export const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ isOpen, onClos
 
             </div>
 
+          </div>
+        )}
+
+        {/* 2. LIVE LYRICS VIEW (Synchronized Karaoke & Plain Lyrics) */}
+        {activeView === 'lyrics' && (
+          <div className="flex-1 flex flex-col gap-3 p-2 h-full overflow-hidden animate-in fade-in duration-200">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <Music className="w-4 h-4 text-cyan-400" />
+                <h3 className="font-heading font-black text-sm sm:text-base text-white">Live Lyrics</h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono">
+                  {lyricsLines ? 'Karaoke Synced' : plainLyrics ? 'Standard' : 'Searching'}
+                </span>
+              </div>
+              <button
+                onClick={() => setActiveView('player')}
+                className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold cursor-pointer"
+              >
+                Back to Player
+              </button>
+            </div>
+
+            {/* Lyrics Container */}
+            <div 
+              ref={lyricsContainerRef}
+              className="flex-1 overflow-y-auto no-scrollbar py-6 space-y-4 text-center px-4"
+            >
+              {isLyricsLoading ? (
+                <div className="py-24 text-center space-y-3">
+                  <div className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin mx-auto" />
+                  <p className="text-xs text-slate-400">Fetching live synchronized lyrics...</p>
+                </div>
+              ) : lyricsLines && lyricsLines.length > 0 ? (
+                lyricsLines.map((line, idx) => {
+                  const isCurrentLine = idx === currentLyricIndex;
+                  return (
+                    <p
+                      key={idx}
+                      onClick={() => seekTo(line.time)}
+                      className={`transition-all duration-300 cursor-pointer select-none leading-relaxed ${
+                        isCurrentLine
+                          ? 'text-lg sm:text-2xl font-black text-cyan-300 scale-105 filter drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]'
+                          : 'text-sm sm:text-base font-semibold text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      {line.text || '♪'}
+                    </p>
+                  );
+                })
+              ) : plainLyrics ? (
+                <div className="text-sm sm:text-base text-slate-300 whitespace-pre-line leading-relaxed font-medium">
+                  {plainLyrics}
+                </div>
+              ) : (
+                <div className="py-20 text-center space-y-3">
+                  <Music className="w-10 h-10 text-slate-600 mx-auto" />
+                  <h4 className="text-base font-bold text-white">No Synchronized Lyrics Found</h4>
+                  <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                    Lyrics for "{currentTrack.title}" could not be matched via LRCLIB. Enjoy the music!
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -700,45 +888,75 @@ export const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ isOpen, onClos
 
       </main>
 
-      {/* Sleep Timer Picker Modal */}
+      {/* Sleep Timer Picker Modal with Live Seconds Countdown */}
       {showSleepTimerModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
           <div className="w-full max-w-xs rounded-3xl bg-slate-900 border border-white/10 p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <h4 className="font-heading font-bold text-sm text-white flex items-center gap-2">
                 <Moon className="w-4 h-4 text-amber-400" />
-                Audio Sleep Timer
+                <span>Audio Sleep Timer</span>
               </h4>
               <button onClick={() => setShowSleepTimerModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              {[5, 15, 30, 45, 60, 90].map((mins) => (
-                <button
-                  key={mins}
-                  onClick={() => handleSetSleepTimer(mins)}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-bold text-center transition-all border cursor-pointer ${
-                    sleepTimerMinutes === mins
-                      ? 'bg-amber-500/25 border-amber-500 text-amber-300'
-                      : 'bg-slate-800/80 hover:bg-slate-700 border-white/5 text-slate-200'
-                  }`}
-                >
-                  {mins} Minutes
-                </button>
-              ))}
+            {/* Live Countdown Display if Active */}
+            {sleepTimerSecondsRemaining !== null && (
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center space-y-1">
+                <span className="text-[10px] text-amber-300 uppercase tracking-wider font-bold">Timer Running</span>
+                <div className="text-xl font-mono font-black text-amber-400 animate-pulse">
+                  {formatTimerWithSeconds(sleepTimerSecondsRemaining)} remaining
+                </div>
+                <div className="flex items-center justify-center gap-2 pt-1">
+                  <button
+                    onClick={() => setSleepTimerSecondsRemaining((prev) => (prev || 0) + 300)}
+                    className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 text-[10px] font-bold hover:bg-amber-500/30 cursor-pointer"
+                  >
+                    +5 Minutes
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSleepTimerSecondsRemaining(null);
+                      setShowSleepTimerModal(false);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 text-[10px] font-bold hover:bg-rose-500/30 cursor-pointer"
+                  >
+                    Turn Off
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <span className="text-[11px] text-slate-400 font-medium">Set Timer Duration:</span>
+              <div className="grid grid-cols-2 gap-2">
+                {[5, 15, 30, 45, 60, 90].map((mins) => (
+                  <button
+                    key={mins}
+                    onClick={() => handleSetSleepTimer(mins)}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold text-center transition-all border cursor-pointer ${
+                      sleepTimerSecondsRemaining === mins * 60
+                        ? 'bg-amber-500/25 border-amber-500 text-amber-300'
+                        : 'bg-slate-800/80 hover:bg-slate-700 border-white/5 text-slate-200'
+                    }`}
+                  >
+                    {mins} Minutes
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {sleepTimerMinutes !== null && (
+            {sleepTimerSecondsRemaining !== null && (
               <button
                 onClick={() => {
-                  setSleepTimerMinutes(null);
+                  setSleepTimerSecondsRemaining(null);
                   setShowSleepTimerModal(false);
                 }}
                 className="w-full py-2 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-bold cursor-pointer"
               >
-                Cancel Timer
+                Cancel Sleep Timer
               </button>
             )}
           </div>

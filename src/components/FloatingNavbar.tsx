@@ -5,7 +5,8 @@ import {
   Compass, 
   Heart, 
   DownloadCloud, 
-  ListMusic
+  ListMusic,
+  User
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useMusic } from '../context/MusicContext';
@@ -21,9 +22,10 @@ export const FloatingNavbar: React.FC<FloatingNavbarProps> = ({
   setActiveTab,
 }) => {
   const { currentTheme } = useTheme();
-  const { isPlaying, tracks, favoriteTrackIds, ytSavedTracks } = useMusic();
+  const { isPlaying, tracks, favoriteTrackIds, ytSavedTracks, devicePlaylistTrackIds } = useMusic();
 
   const savedCount = tracks.filter((t) => t.isOfflineCached).length;
+  const totalPlaylistSongs = devicePlaylistTrackIds.length + ytSavedTracks.length;
 
   const navItems = [
     {
@@ -33,36 +35,31 @@ export const FloatingNavbar: React.FC<FloatingNavbarProps> = ({
       badge: null,
     },
     {
-      id: 'all',
-      label: 'Songs',
-      icon: Music,
-      badge: null,
-    },
-    {
       id: 'playlists',
       label: 'Playlists',
       icon: ListMusic,
-      badge: ytSavedTracks.length > 0 ? `${ytSavedTracks.length}` : null,
+      badge: totalPlaylistSongs > 0 ? `${totalPlaylistSongs}` : null,
       badgeColor: 'bg-purple-500 text-white',
     },
     {
       id: 'ytexplore',
-      label: 'YT Explore',
+      label: 'YT Music',
       icon: Compass,
       badge: 'LIVE',
       badgeColor: 'bg-red-500 text-white',
     },
     {
-      id: 'favorites',
-      label: 'Liked',
-      icon: Heart,
-      badge: favoriteTrackIds.length > 0 ? `${favoriteTrackIds.length}` : null,
-    },
-    {
-      id: 'offline',
-      label: 'Saved',
+      id: 'downloads',
+      label: 'Downloads',
       icon: DownloadCloud,
       badge: savedCount > 0 ? `${savedCount}` : null,
+      badgeColor: 'bg-emerald-500 text-white',
+    },
+    {
+      id: 'profile',
+      label: 'Profile',
+      icon: User,
+      badge: null,
     },
   ];
 

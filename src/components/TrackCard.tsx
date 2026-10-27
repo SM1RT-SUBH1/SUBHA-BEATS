@@ -4,6 +4,8 @@ import {
   Pause, 
   Heart, 
   CheckCircle2, 
+  ListPlus,
+  ListCheck
 } from 'lucide-react';
 import { Track } from '../types';
 import { useMusic } from '../context/MusicContext';
@@ -22,11 +24,14 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track }) => {
     togglePlayPause, 
     toggleFavorite, 
     favoriteTrackIds,
+    toggleDevicePlaylist,
+    isInDevicePlaylist,
   } = useMusic();
   const { currentTheme } = useTheme();
 
   const isCurrent = currentTrack?.id === track.id;
   const isFav = favoriteTrackIds.includes(track.id);
+  const inDevicePlaylist = isInDevicePlaylist(track.id);
 
   const handlePlayClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -40,6 +45,11 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track }) => {
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleFavorite(track.id);
+  };
+
+  const handlePlaylistClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleDevicePlaylist(track.id);
   };
 
   return (
@@ -102,7 +112,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track }) => {
           </button>
         </div>
 
-        {/* Badges */}
+        {/* Featured Badges */}
         {track.isFeatured && (
           <div className="absolute top-1 left-1 px-1 py-0.2 rounded bg-amber-500/90 text-slate-950 text-[8px] font-black uppercase tracking-wider shadow">
             Featured
@@ -116,7 +126,24 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track }) => {
           </div>
         )}
 
-        {/* Quick Heart on Artwork */}
+        {/* Add to Device Playlist Quick Icon on Artwork (Bottom Left) */}
+        <button
+          onClick={handlePlaylistClick}
+          className={`absolute bottom-1 left-1 p-1 rounded-full backdrop-blur-md transition-all ${
+            inDevicePlaylist
+              ? 'bg-cyan-500/40 text-cyan-300 opacity-100 ring-1 ring-cyan-400/50'
+              : 'bg-black/50 text-white opacity-0 group-hover:opacity-100 hover:text-cyan-300'
+          }`}
+          title={inDevicePlaylist ? "In Device Playlist (Tap to remove)" : "Add to Device Playlist"}
+        >
+          {inDevicePlaylist ? (
+            <ListCheck className="w-3 h-3 text-cyan-400" />
+          ) : (
+            <ListPlus className="w-3 h-3" />
+          )}
+        </button>
+
+        {/* Quick Heart on Artwork (Bottom Right) */}
         <button
           onClick={handleFavoriteClick}
           className={`absolute bottom-1 right-1 p-1 rounded-full backdrop-blur-md transition-all ${
@@ -142,12 +169,27 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track }) => {
         </h4>
         
         <div className="flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400">
-          <span className="truncate max-w-[70%]" title={track.artist}>
+          <span className="truncate max-w-[60%]" title={track.artist}>
             {track.artist}
           </span>
-          <span className="font-mono text-[8px] sm:text-[9px] text-slate-500 flex-shrink-0">
-            {track.durationFormatted || '3:30'}
-          </span>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={handlePlaylistClick}
+              className={`transition-colors cursor-pointer ${
+                inDevicePlaylist ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+              }`}
+              title={inDevicePlaylist ? "In Device Playlist" : "Add to Device Playlist"}
+            >
+              {inDevicePlaylist ? (
+                <ListCheck className="w-3 h-3 text-cyan-400" />
+              ) : (
+                <ListPlus className="w-3 h-3" />
+              )}
+            </button>
+            <span className="font-mono text-[8px] sm:text-[9px] text-slate-500">
+              {track.durationFormatted || '3:30'}
+            </span>
+          </div>
         </div>
       </div>
     </div>

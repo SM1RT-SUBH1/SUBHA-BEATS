@@ -86,11 +86,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="font-heading font-black text-sm sm:text-base tracking-tight text-white whitespace-nowrap">
                 Subha <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">BEATS</span>
               </span>
-              {isAdmin && (
-                <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  ADMIN
-                </span>
-              )}
             </div>
             <p className="text-[9px] text-slate-400 font-medium hidden sm:block">
               Ultra-HQ YouTube Audio Studio
@@ -240,7 +235,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       )}
 
       {/* Sub Navigation Category Pills - STRICTLY ONLY TWO OPTIONS as requested: Featured & All Songs */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-2 pt-0.5 flex items-center gap-2">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-2 pt-0.5 flex items-center justify-center gap-2.5">
         <button
           onClick={() => setActiveTab('featured')}
           className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${

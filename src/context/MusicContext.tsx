@@ -80,6 +80,12 @@ interface MusicContextType {
   addTrackToYtPlaylist: (track: Track) => void;
   removeTrackFromYtPlaylist: (trackId: string) => void;
 
+  // Device-Specific Custom Playlist (Selected by user on this specific device)
+  devicePlaylistTrackIds: string[];
+  devicePlaylistTracks: Track[];
+  toggleDevicePlaylist: (trackId: string) => void;
+  isInDevicePlaylist: (trackId: string) => boolean;
+
   // Real-Time Cross-Device Cloud Sync
   realtimeSyncInfo: {
     isConnected: boolean;
@@ -91,6 +97,43 @@ interface MusicContextType {
   setSyncRoomCode: (code: string) => void;
   toggleRemotePlayback: () => void;
   triggerCloudSync: () => Promise<void>;
+
+  // Song Playing History
+  recentHistory: Track[];
+  addToHistory: (track: Track) => void;
+  clearHistory: () => void;
+
+  // Dedicated YouTube Downloads (Offline section)
+  ytDownloadedTracks: Track[];
+  downloadYtTrack: (track: Track) => Promise<void>;
+  removeDownloadedYtTrack: (trackId: string) => Promise<void>;
+  isYtTrackDownloaded: (trackId: string) => boolean;
+
+  // External Appearance & Design Settings
+  highRefreshRate: boolean;
+  setHighRefreshRate: (val: boolean) => void;
+  landscapeScaling: boolean;
+  setLandscapeScaling: (val: boolean) => void;
+  dynamicTheme: boolean;
+  setDynamicTheme: (val: boolean) => void;
+  dynamicIconColor: boolean;
+  setDynamicIconColor: (val: boolean) => void;
+  miniPlayerDesign: 'blur' | 'transparent' | 'gradient';
+  setMiniPlayerDesign: (val: 'blur' | 'transparent' | 'gradient') => void;
+  fullPlayerDesign: 'modern' | 'glass' | 'vinyl';
+  setFullPlayerDesign: (val: 'modern' | 'glass' | 'vinyl') => void;
+  playerBackgroundStyle: 'blur' | 'gradient' | 'solid';
+  setPlayerBackgroundStyle: (val: 'blur' | 'gradient' | 'solid') => void;
+  playerSliderStyle: 'wavy' | 'default';
+  setPlayerSliderStyle: (val: 'wavy' | 'default') => void;
+
+  // Player & Audio (Meld Audio Features)
+  spatialAudio: boolean;
+  setSpatialAudio: (val: boolean) => void;
+  normalizeVolume: boolean;
+  setNormalizeVolume: (val: boolean) => void;
+  crossfadeDuration: number;
+  setCrossfadeDuration: (val: number) => void;
 }
 
 const STORAGE_KEY_CUSTOM_TRACKS = 'smart_subha_custom_tracks';
@@ -99,6 +142,7 @@ const STORAGE_KEY_FAVORITES = 'smart_subha_favorites';
 const STORAGE_KEY_SAVED = 'smart_subha_saved';
 const STORAGE_KEY_FEATURED = 'smart_subha_featured_ids';
 const STORAGE_KEY_YT_SAVED = 'smart_subha_yt_playlist';
+const STORAGE_KEY_DEVICE_PLAYLIST = 'smart_subha_device_playlist_tracks';
 const STORAGE_KEY_DELETED_TRACK_IDS = 'smart_subha_deleted_track_ids';
 const STORAGE_KEY_ALL_TRACKS = 'smart_subha_master_tracks';
 
@@ -109,12 +153,19 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const cached = localStorage.getItem(STORAGE_KEY_FEATURED);
     if (cached) {
       try {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        // Clean out legacy pre-set featured list if present
+        if (Array.isArray(parsed) && (parsed.length === 16 || parsed.includes('RFaUZWdczvk'))) {
+          localStorage.setItem(STORAGE_KEY_FEATURED, JSON.stringify([]));
+          return [];
+        }
+        return Array.isArray(parsed) ? parsed : [];
       } catch (e) {
-        // fallback
+        return [];
       }
     }
-    return DEFAULT_TRACKS.slice(0, 16).map((t) => t.id);
+    // Preset featured tracks removed as requested by user. Only explicitly added admin tracks sync.
+    return [];
   });
 
   const [tracks, setTracks] = useState<Track[]>(() => {
@@ -192,7 +243,183 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
+  const [devicePlaylistTrackIds, setDevicePlaylistTrackIds] = useState<string[]>(() => {
+    try {
+      const cached = localStorage.getItem(STORAGE_KEY_DEVICE_PLAYLIST);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleDevicePlaylist = (trackId: string) => {
+    setDevicePlaylistTrackIds((prev) => {
+      const exists = prev.includes(trackId);
+      const updated = exists ? prev.filter((id) => id !== trackId) : [...prev, trackId];
+      localStorage.setItem(STORAGE_KEY_DEVICE_PLAYLIST, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const isInDevicePlaylist = (trackId: string) => {
+    return devicePlaylistTrackIds.includes(trackId);
+  };
+
+  const devicePlaylistTracks = tracks.filter((t) => devicePlaylistTrackIds.includes(t.id));
+
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
+
+  // Song Playing History
+  const [recentHistory, setRecentHistory] = useState<Track[]>(() => {
+    try {
+      const cached = localStorage.getItem('smart_subha_play_history');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const addToHistory = (track: Track) => {
+    setRecentHistory((prev) => {
+      const filtered = prev.filter((t) => t.id !== track.id);
+      const updated = [track, ...filtered].slice(0, 50);
+      localStorage.setItem('smart_subha_play_history', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const clearHistory = () => {
+    setRecentHistory([]);
+    localStorage.removeItem('smart_subha_play_history');
+  };
+
+  // Dedicated YouTube Downloads for Offline Section
+  const [ytDownloadedTracks, setYtDownloadedTracks] = useState<Track[]>(() => {
+    try {
+      const cached = localStorage.getItem('smart_subha_yt_downloaded_tracks');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const downloadYtTrack = async (track: Track) => {
+    setDownloadProgress((prev) => ({ ...prev, [track.id]: 20 }));
+    await downloadTrackForOffline(track, (p) => {
+      setDownloadProgress((prev) => ({ ...prev, [track.id]: p }));
+    });
+    setYtDownloadedTracks((prev) => {
+      if (prev.some((t) => t.id === track.id)) return prev;
+      const updated = [track, ...prev];
+      localStorage.setItem('smart_subha_yt_downloaded_tracks', JSON.stringify(updated));
+      return updated;
+    });
+    setDownloadProgress((prev) => ({ ...prev, [track.id]: 100 }));
+  };
+
+  const removeDownloadedYtTrack = async (trackId: string) => {
+    await deleteOfflineTrack(trackId);
+    setYtDownloadedTracks((prev) => {
+      const updated = prev.filter((t) => t.id !== trackId);
+      localStorage.setItem('smart_subha_yt_downloaded_tracks', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const isYtTrackDownloaded = (trackId: string) => {
+    return ytDownloadedTracks.some((t) => t.id === trackId);
+  };
+
+  // External Settings: Appearance & Design
+  const [highRefreshRate, setHighRefreshRateState] = useState<boolean>(() => {
+    return localStorage.getItem('smart_subha_setting_high_refresh') !== 'false';
+  });
+  const setHighRefreshRate = (val: boolean) => {
+    setHighRefreshRateState(val);
+    localStorage.setItem('smart_subha_setting_high_refresh', String(val));
+  };
+
+  const [landscapeScaling, setLandscapeScalingState] = useState<boolean>(() => {
+    return localStorage.getItem('smart_subha_setting_landscape_scaling') === 'true';
+  });
+  const setLandscapeScaling = (val: boolean) => {
+    setLandscapeScalingState(val);
+    localStorage.setItem('smart_subha_setting_landscape_scaling', String(val));
+  };
+
+  const [dynamicTheme, setDynamicThemeState] = useState<boolean>(() => {
+    return localStorage.getItem('smart_subha_setting_dynamic_theme') !== 'false';
+  });
+  const setDynamicTheme = (val: boolean) => {
+    setDynamicThemeState(val);
+    localStorage.setItem('smart_subha_setting_dynamic_theme', String(val));
+  };
+
+  const [dynamicIconColor, setDynamicIconColorState] = useState<boolean>(() => {
+    return localStorage.getItem('smart_subha_setting_dynamic_icon_color') !== 'false';
+  });
+  const setDynamicIconColor = (val: boolean) => {
+    setDynamicIconColorState(val);
+    localStorage.setItem('smart_subha_setting_dynamic_icon_color', String(val));
+  };
+
+  const [miniPlayerDesign, setMiniPlayerDesignState] = useState<'blur' | 'transparent' | 'gradient'>(() => {
+    return (localStorage.getItem('smart_subha_setting_mini_player') as any) || 'blur';
+  });
+  const setMiniPlayerDesign = (val: 'blur' | 'transparent' | 'gradient') => {
+    setMiniPlayerDesignState(val);
+    localStorage.setItem('smart_subha_setting_mini_player', val);
+  };
+
+  const [fullPlayerDesign, setFullPlayerDesignState] = useState<'modern' | 'glass' | 'vinyl'>(() => {
+    return (localStorage.getItem('smart_subha_setting_full_player') as any) || 'modern';
+  });
+  const setFullPlayerDesign = (val: 'modern' | 'glass' | 'vinyl') => {
+    setFullPlayerDesignState(val);
+    localStorage.setItem('smart_subha_setting_full_player', val);
+  };
+
+  const [playerBackgroundStyle, setPlayerBackgroundStyleState] = useState<'blur' | 'gradient' | 'solid'>(() => {
+    return (localStorage.getItem('smart_subha_setting_bg_style') as any) || 'blur';
+  });
+  const setPlayerBackgroundStyle = (val: 'blur' | 'gradient' | 'solid') => {
+    setPlayerBackgroundStyleState(val);
+    localStorage.setItem('smart_subha_setting_bg_style', val);
+  };
+
+  const [playerSliderStyle, setPlayerSliderStyleState] = useState<'wavy' | 'default'>(() => {
+    return (localStorage.getItem('smart_subha_setting_slider_style') as any) || 'wavy';
+  });
+  const setPlayerSliderStyle = (val: 'wavy' | 'default') => {
+    setPlayerSliderStyleState(val);
+    localStorage.setItem('smart_subha_setting_slider_style', val);
+  };
+
+  // Meld Audio Features
+  const [spatialAudio, setSpatialAudioState] = useState<boolean>(() => {
+    return localStorage.getItem('smart_subha_setting_spatial_audio') === 'true';
+  });
+  const setSpatialAudio = (val: boolean) => {
+    setSpatialAudioState(val);
+    localStorage.setItem('smart_subha_setting_spatial_audio', String(val));
+  };
+
+  const [normalizeVolume, setNormalizeVolumeState] = useState<boolean>(() => {
+    return localStorage.getItem('smart_subha_setting_norm_volume') !== 'false';
+  });
+  const setNormalizeVolume = (val: boolean) => {
+    setNormalizeVolumeState(val);
+    localStorage.setItem('smart_subha_setting_norm_volume', String(val));
+  };
+
+  const [crossfadeDuration, setCrossfadeDurationState] = useState<number>(() => {
+    const cached = localStorage.getItem('smart_subha_setting_crossfade');
+    return cached ? parseInt(cached, 10) : 3;
+  });
+  const setCrossfadeDuration = (val: number) => {
+    setCrossfadeDurationState(val);
+    localStorage.setItem('smart_subha_setting_crossfade', String(val));
+  };
   // Initially null so bottom player is hidden on refresh until user selects a song
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -732,6 +959,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const playTrack = (track: Track, newQueue?: Track[]) => {
     setCurrentTrack(track);
     setCurrentTime(0);
+    addToHistory(track);
     const targetQueue = newQueue || queue;
     if (newQueue) {
       setQueue(newQueue);
@@ -1173,6 +1401,10 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ytSavedTracks,
         addTrackToYtPlaylist,
         removeTrackFromYtPlaylist,
+        devicePlaylistTrackIds,
+        devicePlaylistTracks,
+        toggleDevicePlaylist,
+        isInDevicePlaylist,
         realtimeSyncInfo: {
           isConnected,
           lastSyncedAt,
@@ -1183,6 +1415,35 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setSyncRoomCode,
         toggleRemotePlayback,
         triggerCloudSync,
+        recentHistory,
+        addToHistory,
+        clearHistory,
+        ytDownloadedTracks,
+        downloadYtTrack,
+        removeDownloadedYtTrack,
+        isYtTrackDownloaded,
+        highRefreshRate,
+        setHighRefreshRate,
+        landscapeScaling,
+        setLandscapeScaling,
+        dynamicTheme,
+        setDynamicTheme,
+        dynamicIconColor,
+        setDynamicIconColor,
+        miniPlayerDesign,
+        setMiniPlayerDesign,
+        fullPlayerDesign,
+        setFullPlayerDesign,
+        playerBackgroundStyle,
+        setPlayerBackgroundStyle,
+        playerSliderStyle,
+        setPlayerSliderStyle,
+        spatialAudio,
+        setSpatialAudio,
+        normalizeVolume,
+        setNormalizeVolume,
+        crossfadeDuration,
+        setCrossfadeDuration,
       }}
     >
       {/* Resilient YouTube audio player positioned in active viewport to prevent background mobile throttling */}

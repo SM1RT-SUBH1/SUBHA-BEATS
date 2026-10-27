@@ -6,7 +6,9 @@ import {
   CheckCircle2, 
   DownloadCloud,
   Loader2,
-  WifiOff
+  WifiOff,
+  ListPlus,
+  ListCheck
 } from 'lucide-react';
 import { Track } from '../types';
 import { useMusic } from '../context/MusicContext';
@@ -27,6 +29,8 @@ export const TrackListItem: React.FC<TrackListItemProps> = ({ track, index }) =>
     favoriteTrackIds,
     toggleOfflineCache,
     downloadProgress,
+    toggleDevicePlaylist,
+    isInDevicePlaylist,
   } = useMusic();
   const { currentTheme } = useTheme();
 
@@ -112,9 +116,29 @@ export const TrackListItem: React.FC<TrackListItemProps> = ({ track, index }) =>
 
       </div>
 
-      {/* Right Actions: Favorite, Offline & Duration */}
-      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 text-xs">
+      {/* Right Actions: Add to Playlist, Favorite, Offline & Duration */}
+      <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0 text-xs">
         
+        {/* Add to Device Playlist */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleDevicePlaylist(track.id);
+          }}
+          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+            isInDevicePlaylist(track.id)
+              ? 'text-cyan-400 bg-cyan-950/40'
+              : 'text-slate-500 hover:text-slate-300 opacity-0 group-hover:opacity-100'
+          }`}
+          title={isInDevicePlaylist(track.id) ? "In Device Playlist (Tap to remove)" : "Add to Device Playlist"}
+        >
+          {isInDevicePlaylist(track.id) ? (
+            <ListCheck className="w-4 h-4 text-cyan-400" />
+          ) : (
+            <ListPlus className="w-4 h-4" />
+          )}
+        </button>
+
         {/* Heart / Favorite */}
         <button
           onClick={handleFavoriteClick}

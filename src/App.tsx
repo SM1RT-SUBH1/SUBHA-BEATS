@@ -44,6 +44,8 @@ import { ThemeSwitcherModal } from './components/ThemeSwitcherModal';
 import { YTMusicExplorer } from './components/YTMusicExplorer';
 import { FloatingNavbar } from './components/FloatingNavbar';
 import { PlaylistManagerView } from './components/PlaylistManagerView';
+import { DownloadsManagerView } from './components/DownloadsManagerView';
+import { ProfileSettingsView } from './components/ProfileSettingsView';
 import { useInstall } from './context/InstallContext';
 import { useTheme } from './context/ThemeContext';
 import { StarsBackground } from './components/ui/stars-background';
@@ -70,7 +72,7 @@ export const App: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedLetter, setSelectedLetter] = useState<string>('ALL');
   const [selectedArtist, setSelectedArtist] = useState<string>('ALL');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'small' | 'big' | 'list' | 'minimal'>('small');
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   // Sorting Options: A-Z, Z-A, Artist A-Z, Artist Z-A, Newest, Duration
@@ -379,11 +381,18 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* RENDER TAB VIEWS: PLAYLISTS, YT EXPLORE, OR MAIN CATALOG */}
+        {/* RENDER TAB VIEWS: PLAYLISTS, YT MUSIC, DOWNLOADS, PROFILE, OR MAIN CATALOG */}
         {activeTab === 'playlists' ? (
           <PlaylistManagerView onNavigateToYtExplore={() => setActiveTab('ytexplore')} />
         ) : activeTab === 'ytexplore' ? (
           <YTMusicExplorer />
+        ) : activeTab === 'downloads' || activeTab === 'offline' ? (
+          <DownloadsManagerView 
+            onNavigateToExplore={() => setActiveTab('ytexplore')} 
+            onNavigateToCatalog={() => setActiveTab('all')} 
+          />
+        ) : activeTab === 'profile' ? (
+          <ProfileSettingsView />
         ) : (
           <section className="space-y-4">
           
@@ -391,204 +400,213 @@ export const App: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/5">
             <div>
               <h2 className="font-heading text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-                {activeTab === 'featured' 
-                  ? (showAllTracks ? `All Library Songs (${tracks.length})` : `Featured Songs (${displayedTracks.length})`)
-                  : activeTab === 'all'
-                  ? `All Library Songs (${tracks.length})`
-                  : activeTab === 'bengali'
-                  ? `বাংলা Melodies (${displayedTracks.length})`
-                  : activeTab === 'lofi'
-                  ? `Lofi & Chill (${displayedTracks.length})`
-                  : activeTab === 'trending'
-                  ? `Trending Hits (${displayedTracks.length})`
-                  : activeTab === 'curated'
-                  ? `Subha's Picks (${displayedTracks.length})`
-                  : activeTab === 'favorites'
-                  ? `Your Favorite Songs (${displayedTracks.length})`
-                  : `Offline Synced Songs (${displayedTracks.length})`
+                {activeTab === 'featured'
+                  ? `Featured Songs (${displayedTracks.length})`
+                  : `All Library Songs (${displayedTracks.length})`
                 }
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Showing {displayedTracks.length} of {tracks.length} tracks
+                {activeTab === 'featured'
+                  ? "Curated highlights chosen by Admin"
+                  : `Showing ${displayedTracks.length} of ${tracks.length} tracks`
+                }
               </p>
             </div>
 
-            {/* Controls: Sort Dropdown & View Mode Switcher */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {activeTab === 'featured' && (
-                <button
-                  onClick={() => setShowAllTracks(!showAllTracks)}
-                  className="px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold border border-white/10 transition-colors cursor-pointer"
-                >
-                  {showAllTracks ? "Show Featured" : `See All (${tracks.length})`}
-                </button>
-              )}
+            {/* In ALL SONGS: Middle View Mode Selector & Sort Selector */}
+            {activeTab === 'all' && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* View Mode Choice Switcher (Middle position) */}
+                <div className="flex items-center p-0.5 rounded-full bg-white/5 border border-white/10 shadow-sm">
+                  <button
+                    onClick={() => setViewMode('small')}
+                    className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                      viewMode === 'small' ? 'bg-white text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                    title="Small Cards (Compact)"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Small</span>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('big')}
+                    className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                      viewMode === 'big' ? 'bg-white text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                    title="Big Cards"
+                  >
+                    <Music className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Big</span>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                      viewMode === 'list' ? 'bg-white text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                    title="List View"
+                  >
+                    <List className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">List</span>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('minimal')}
+                    className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                      viewMode === 'minimal' ? 'bg-white text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                    title="Minimal Tiles"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Minimal</span>
+                  </button>
+                </div>
 
-              {/* Sort Selector Dropdown */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
-                <ArrowUpDown className="w-3.5 h-3.5 text-cyan-400" />
-                <select
-                  value={sortBy}
-                  onChange={(e: any) => setSortBy(e.target.value)}
-                  className="bg-transparent text-xs text-cyan-300 font-semibold outline-none cursor-pointer"
-                >
-                  <option value="featured" className="bg-slate-900 text-slate-200">Featured Picks</option>
-                  <option value="az" className="bg-slate-900 text-slate-200">Title: A → Z</option>
-                  <option value="za" className="bg-slate-900 text-slate-200">Title: Z → A</option>
-                  <option value="artist-az" className="bg-slate-900 text-slate-200">Artist: A → Z</option>
-                  <option value="artist-za" className="bg-slate-900 text-slate-200">Artist: Z → A</option>
-                  <option value="newest" className="bg-slate-900 text-slate-200">Recently Added</option>
-                  <option value="duration-desc" className="bg-slate-900 text-slate-200">Duration: Longest</option>
-                  <option value="duration-asc" className="bg-slate-900 text-slate-200">Duration: Shortest</option>
-                </select>
+                {/* Sort Selector Dropdown */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-cyan-400" />
+                  <select
+                    value={sortBy}
+                    onChange={(e: any) => setSortBy(e.target.value)}
+                    className="bg-transparent text-xs text-cyan-300 font-semibold outline-none cursor-pointer"
+                  >
+                    <option value="az" className="bg-slate-900 text-slate-200">Title: A → Z</option>
+                    <option value="za" className="bg-slate-900 text-slate-200">Title: Z → A</option>
+                    <option value="artist-az" className="bg-slate-900 text-slate-200">Artist: A → Z</option>
+                    <option value="artist-za" className="bg-slate-900 text-slate-200">Artist: Z → A</option>
+                    <option value="newest" className="bg-slate-900 text-slate-200">Recently Added</option>
+                    <option value="duration-desc" className="bg-slate-900 text-slate-200">Duration: Longest</option>
+                    <option value="duration-asc" className="bg-slate-900 text-slate-200">Duration: Shortest</option>
+                  </select>
+                </div>
               </div>
-
-              {/* Grid / List View Toggle */}
-              <div className="flex items-center p-0.5 rounded-full bg-white/5 border border-white/10">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded-full transition-colors cursor-pointer ${
-                    viewMode === 'grid' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
-                  }`}
-                  title="Grid View"
-                >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded-full transition-colors cursor-pointer ${
-                    viewMode === 'list' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
-                  }`}
-                  title="List View"
-                >
-                  <List className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Dedicated Search Input for Catalog */}
-          <div className="relative w-full flex items-center">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              ref={catalogSearchRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search songs, artists (Arijit, Jeet Gannguli, Atif...), Bangla melodies..."
-              className="w-full pl-10 pr-24 py-2 rounded-xl bg-slate-900/60 border border-white/10 focus:border-cyan-400 text-xs text-white placeholder-slate-400 outline-none transition-all"
-            />
-            {searchQuery ? (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            ) : (
-              <button
-                onClick={() => catalogSearchRef.current?.focus()}
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-[10px] font-bold text-slate-300 transition-colors cursor-pointer"
-              >
-                Search
-              </button>
             )}
           </div>
 
-          {/* Category Filter Pills (Horizontal scroll) */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-            {[
-              { id: 'all', label: 'All' },
-              { id: 'bengali', label: 'বাংলা (Bengali)' },
-              { id: 'lofi', label: 'Lofi Chill' },
-              { id: 'edm', label: 'EDM & Bass' },
-              { id: 'trending', label: 'Trending Hits' },
-              { id: 'pop', label: 'Pop' },
-            ].map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
-                  selectedCategory === cat.id
-                    ? 'bg-purple-600 text-white shadow-sm'
-                    : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
+          {/* IN ALL SONGS: Show Category Pills, Artist Pills, and A-Z Jump Bar (HIDDEN IN FEATURED) */}
+          {activeTab === 'all' && (
+            <div className="space-y-2 pt-1 animate-in fade-in duration-200">
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'bengali', label: 'বাংলা (Bengali)' },
+                  { id: 'lofi', label: 'Lofi Chill' },
+                  { id: 'edm', label: 'EDM & Bass' },
+                  { id: 'trending', label: 'Trending Hits' },
+                  { id: 'pop', label: 'Pop' },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                      selectedCategory === cat.id
+                        ? 'bg-purple-600 text-white shadow-sm'
+                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
 
-          {/* Artist Filter Pills (Horizontal scroll) */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            <span className="text-[11px] font-semibold text-slate-500 pl-1 pr-1 flex-shrink-0">
-              Artist:
-            </span>
-            {topArtists.map((artist) => (
-              <button
-                key={artist}
-                onClick={() => setSelectedArtist(artist)}
-                className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
-                  selectedArtist === artist
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 font-bold'
-                    : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {artist}
-              </button>
-            ))}
-          </div>
+              {/* Artist Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                <span className="text-[11px] font-semibold text-slate-500 pl-1 pr-1 flex-shrink-0">
+                  Artist:
+                </span>
+                {topArtists.map((artist) => (
+                  <button
+                    key={artist}
+                    onClick={() => setSelectedArtist(artist)}
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                      selectedArtist === artist
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 font-bold'
+                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {artist}
+                  </button>
+                ))}
+              </div>
 
-          {/* Alphabetical Quick Jump Bar (A-Z) */}
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1 px-1 bg-white/[0.02] rounded-xl border border-white/5">
-            <span className="text-[10px] font-mono text-slate-500 pl-2 pr-1 flex-shrink-0">A-Z:</span>
-            {alphabetList.map((char) => (
-              <button
-                key={char}
-                onClick={() => setSelectedLetter(char)}
-                className={`min-w-[24px] h-6 px-1 rounded-md text-[11px] font-mono font-semibold transition-colors cursor-pointer ${
-                  selectedLetter === char
-                    ? 'bg-white text-slate-950 font-bold shadow'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                {char}
-              </button>
-            ))}
-          </div>
+              {/* Alphabetical Quick Jump Bar (A-Z) */}
+              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1 px-1 bg-white/[0.02] rounded-xl border border-white/5">
+                <span className="text-[10px] font-mono text-slate-500 pl-2 pr-1 flex-shrink-0">A-Z:</span>
+                {alphabetList.map((char) => (
+                  <button
+                    key={char}
+                    onClick={() => setSelectedLetter(char)}
+                    className={`min-w-[24px] h-6 px-1 rounded-md text-[11px] font-mono font-semibold transition-colors cursor-pointer ${
+                      selectedLetter === char
+                        ? 'bg-white text-slate-950 font-bold shadow'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {char}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Songs Grid or List Display */}
           {displayedTracks.length === 0 ? (
-            <div className="py-16 text-center space-y-3 rounded-2xl bg-white/[0.02] border border-white/5">
-              <Music className="w-10 h-10 text-slate-600 mx-auto" />
-              <h3 className="text-base font-bold text-white">No tracks found</h3>
-              <p className="text-xs text-slate-400">
-                No songs match your search or filter criteria.
+            <div className="py-16 text-center space-y-3 rounded-3xl bg-white/[0.02] border border-white/5 p-6">
+              <Star className="w-10 h-10 text-amber-500/40 mx-auto" />
+              <h3 className="text-base font-bold text-white">
+                {activeTab === 'featured' ? "No Featured Songs Added Yet" : "No tracks found"}
+              </h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                {activeTab === 'featured' 
+                  ? "All previous preset featured songs have been cleared. As requested, only songs explicitly added as featured by the Admin will appear here."
+                  : "No songs match your search or filter criteria. Try resetting filters or using the top search bar."
+                }
               </p>
-              <button
-                onClick={() => {
-                  setSelectedArtist('ALL');
-                  setSelectedLetter('ALL');
-                  setSearchQuery('');
-                  setSelectedCategory('all');
-                  setShowAllTracks(true);
-                  setSortBy('featured');
-                }}
-                className="mt-2 px-4 py-2 rounded-full bg-white text-slate-950 text-xs font-bold transition-all cursor-pointer shadow-md"
-              >
-                Reset Filters
-              </button>
+              <div className="flex items-center justify-center gap-2 pt-2">
+                {activeTab === 'featured' ? (
+                  <button
+                    onClick={() => setActiveTab('all')}
+                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all cursor-pointer shadow-md"
+                  >
+                    Explore All Songs ({tracks.length})
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setSelectedArtist('ALL');
+                      setSelectedLetter('ALL');
+                      setSearchQuery('');
+                      setSelectedCategory('all');
+                      setSortBy('az');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-white text-slate-950 text-xs font-bold transition-all cursor-pointer shadow-md"
+                  >
+                    Reset Filters
+                  </button>
+                )}
+              </div>
             </div>
-          ) : viewMode === 'grid' ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-2.5">
+          ) : viewMode === 'list' ? (
+            <div className="divide-y divide-white/5 rounded-2xl bg-white/[0.02] border border-white/5 p-1 sm:p-2">
+              {displayedTracks.map((track, idx) => (
+                <TrackListItem key={`${track.id}-${idx}`} track={track} index={idx} />
+              ))}
+            </div>
+          ) : viewMode === 'big' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+              {displayedTracks.map((track, idx) => (
+                <TrackCard key={`${track.id}-${idx}`} track={track} index={idx} />
+              ))}
+            </div>
+          ) : viewMode === 'minimal' ? (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5 sm:gap-2">
               {displayedTracks.map((track, idx) => (
                 <TrackCard key={`${track.id}-${idx}`} track={track} index={idx} />
               ))}
             </div>
           ) : (
-            <div className="divide-y divide-white/5 rounded-2xl bg-white/[0.02] border border-white/5 p-1 sm:p-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-2.5">
               {displayedTracks.map((track, idx) => (
-                <TrackListItem key={`${track.id}-${idx}`} track={track} index={idx} />
+                <TrackCard key={`${track.id}-${idx}`} track={track} index={idx} />
               ))}
             </div>
           )}
